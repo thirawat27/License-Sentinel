@@ -1,4 +1,4 @@
-const axios = require('axios');
+const { fetchWithHttps } = require('../utils/network');
 
 const goModStrategy = {
     fileName: 'go.mod',
@@ -22,12 +22,13 @@ const goModStrategy = {
 
     async fetchLicenseInfo(packageName) {
         // Go Package Discovery API
-        const response = await axios.get(`https://pkg.go.dev/${packageName}?tab=licenses`);
+        const htmlContent = await fetchWithHttps(`https://pkg.go.dev/${packageName}?tab=licenses`);
         // การดึง license จาก HTML ค่อนข้างซับซ้อน จะแสดงผลแบบง่ายไปก่อน
-        const licenseMatch = response.data.match(/<h2 id="lic-0".*?>([^<]+)<\/h2>/);
+        // This regex looks for the first license header, which is usually the primary one.
+        const licenseMatch = htmlContent.match(/<h3 id="lic-0".*?>\s*([^<]+)\s*<\/h3>/) || htmlContent.match(/<h2 id="lic-0".*?>\s*([^<]+)\s*<\/h2>/);
 
         return {
-            license: licenseMatch ? licenseMatch[1] : 'N/A',
+            license: licenseMatch ? licenseMatch[1].trim() : 'N/A',
             homepage: `https://pkg.go.dev/${packageName}`
         };
     }

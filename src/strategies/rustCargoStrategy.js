@@ -1,11 +1,10 @@
-const axios = require('axios');
+const { fetchJson } = require('../utils/network');
 const toml = require('toml');
 
 /**
  * Strategy สำหรับการสแกน Dependencies ของ Rust (Cargo)
  */
 const rustCargoStrategy = {
-    // Cargo จะใช้ Cargo.toml ในการนิยาม dependencies
     fileName: 'Cargo.toml',
 
     /**
@@ -15,7 +14,6 @@ const rustCargoStrategy = {
      */
     parseDependencies(fileContent) {
         const parsedToml = toml.parse(fileContent);
-        // รวม dependencies จากทุกส่วน
         const dependencies = parsedToml.dependencies || {};
         const devDependencies = parsedToml['dev-dependencies'] || {};
         const buildDependencies = parsedToml['build-dependencies'] || {};
@@ -30,6 +28,8 @@ const rustCargoStrategy = {
                 cleanedDeps[name] = value;
             } else if (typeof value === 'object' && value.version) {
                 cleanedDeps[name] = value.version;
+            } else if (typeof value === 'object' && !value.version) {
+                 cleanedDeps[name] = "*"; // No version specified, treat as latest
             }
         }
         
@@ -39,17 +39,17 @@ const rustCargoStrategy = {
     /**
      * ดึงข้อมูล License จาก crates.io API
      * @param {string} packageName ชื่อของ crate
-     * @param {string} version เวอร์ชันของ crate
      * @returns {Promise<{license: string, homepage: string}>}
      */
-    async fetchLicenseInfo(packageName, version) {
+    async fetchLicenseInfo(packageName) {
         // crates.io API
-        const response = await axios.get(`https://crates.io/api/v1/crates/${packageName}/${version}`);
-        const crateData = response.data.version;
+        // We fetch the main crate data, which includes the latest version info.
+        const responseData = await fetchJson(`https://crates.io/api/v1/crates/${packageName}`);
+        const crateData = responseData.crate;
         
         return {
             license: crateData.license || 'N/A',
-            homepage: crateData.crate ? `https://crates.io/crates/${crateData.crate}` : ''
+            homepage: crateData.homepage || `https://crates.io/crates/${packageName}`
         };
     }
 };

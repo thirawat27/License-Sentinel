@@ -1,31 +1,21 @@
-const vscode = require('vscode');
-
 /**
- * ดึงข้อมูลจากแคช หากยังไม่หมดอายุ
- * @param {vscode.ExtensionContext} context 
- * @param {string} key 
- * @returns {any | null}
+ * Retrieves a value from the extension's workspace cache.
+ * @param {import('vscode').ExtensionContext} context The extension context.
+ * @param {string} key The cache key.
+ * @returns {any | undefined} The cached value, or undefined if not found.
  */
 function getCache(context, key) {
-    const config = vscode.workspace.getConfiguration('license-sentinel');
-    const cacheDurationHours = config.get('cacheDurationHours', 24);
-    const CACHE_DURATION_MS = cacheDurationHours * 60 * 60 * 1000;
-
-    const cachedItem = context.workspaceState.get(key);
-    if (!cachedItem || (Date.now() - cachedItem.timestamp) > CACHE_DURATION_MS) {
-        return null;
-    }
-    return cachedItem.data;
+    return context.workspaceState.get(key);
 }
 
 /**
- * บันทึกข้อมูลลงแคชพร้อม timestamp
- * @param {vscode.ExtensionContext} context 
- * @param {string} key 
- * @param {any} data 
+ * Stores a value in the extension's workspace cache.
+ * @param {import('vscode').ExtensionContext} context The extension context.
+ * @param {string} key The cache key.
+ * @param {any} value The value to store.
  */
-function setCache(context, key, data) {
-    context.workspaceState.update(key, { data, timestamp: Date.now() });
+function setCache(context, key, value) {
+    context.workspaceState.update(key, value);
 }
 
 module.exports = { getCache, setCache };
