@@ -9,3 +9,7 @@ vsc-extension-quickstart.md
 **/*.map
 **/eslint.config.mjs
 **/.vscode-test.*
+
+# Ignore build source files but not the compiled output
+src/**
+webpack.config.js

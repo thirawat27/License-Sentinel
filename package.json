@@ -2,9 +2,20 @@
   "name": "license-sentinel",
   "displayName": "License Sentinel 🛡️",
   "description": "An intelligent, proactive assistant for managing and enforcing open-source license policies directly within VS Code.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "thirawat27",
   "icon": "image/LicenseSentinel.png",
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "test-compile": "tsc -p ./",
+    "test-watch": "tsc -watch -p ./",
+    "pretest": "npm run test-compile && npm run lint",
+    "lint": "eslint .",
+    "test": "node ./out/test/runTest.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/thirawat27/License-Sentinel"
@@ -35,7 +46,7 @@
   "activationEvents": [
     "onStartup"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -218,6 +229,8 @@
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
-    "eslint": "^9.32.0"
+    "eslint": "^9.32.0",
+    "webpack": "^5.101.0",
+    "webpack-cli": "^6.0.1"
   }
 }
