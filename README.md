@@ -49,7 +49,7 @@ Open-source dependencies accelerate development but introduce licensing complexi
   {
     "license-sentinel.allowedLicenses": ["MIT", "Apache-2.0", "BSD-3-Clause"],
     "license-sentinel.deniedLicenses": ["GPL-3.0", "AGPL-3.0"],
-    "license-sentinel.cacheDurationHours": 12
+    "license-sentinel.cacheDurationHours": 24
   }
   ```
 * **Severity Levels**: Assign custom severity (e.g., warning vs. error) per license for editor diagnostics.
