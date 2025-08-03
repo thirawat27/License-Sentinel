@@ -6,17 +6,11 @@ const { LicenseTreeDataProvider } = require('./src/provider/licenseTreeDataProvi
 const { DependencyHoverProvider, updateDecorations } = require('./src/features/decorations');
 const { convertToCsv, debounce } = require('./src/utils');
 
-// State ส่วนกลางสำหรับเก็บข้อมูลล่าสุด เพื่อใช้ในฟังก์ชัน export
 let dependencyData = [];
 
-/**
- * ฟังก์ชันหลักที่จะถูกเรียกเมื่อ Extension เริ่มทำงาน
- * @param {vscode.ExtensionContext} context
- */
 async function activate(context) {
     console.log('LicenseSentinel is now active!');
 
-    // 1. ตั้งค่า UI Providers ทั้งหมด
     const treeDataProvider = new LicenseTreeDataProvider();
     vscode.window.createTreeView('license-sentinel-dependency-view', { treeDataProvider });
 
@@ -28,14 +22,13 @@ async function activate(context) {
     context.subscriptions.push(statusBarItem);
     statusBarItem.show();
 
-
-    // 2. ลงทะเบียนคำสั่งทั้งหมด
+    // -- Commands Registration --
     const refreshCommand = vscode.commands.registerCommand('license-sentinel.refresh',
         () => runScan(context, treeDataProvider, hoverProvider, statusBarItem)
     );
     const clearCacheCommand = vscode.commands.registerCommand('license-sentinel.clearCache', () => {
         context.workspaceState.keys().forEach(key => {
-            if (key.startsWith('license-sentinel-')) {
+            if (key.startsWith('license-sentinel-') || key.startsWith('file-') || key.startsWith('deps-data-')) {
                 context.workspaceState.update(key, undefined);
             }
         });
@@ -43,11 +36,9 @@ async function activate(context) {
         vscode.commands.executeCommand('license-sentinel.refresh');
     });
     const exportCsvCommand = vscode.commands.registerCommand('license-sentinel.exportCsv', () => exportDataAsCsv());
-
     context.subscriptions.push(refreshCommand, clearCacheCommand, exportCsvCommand);
 
-
-    // 3. ตั้งค่า Automation และ Event Listeners
+    // -- Event Listeners --
     const debouncedUpdateDecorations = debounce((editor) => {
         if (editor) {
             updateDecorations(editor, dependencyData);
@@ -58,7 +49,8 @@ async function activate(context) {
         const fileName = path.basename(doc.fileName);
         const supportedFiles = ['package.json', 'composer.json', 'pyproject.toml', 'pom.xml', 'go.mod', 'Cargo.toml'];
         if (supportedFiles.includes(fileName)) {
-            vscode.commands.executeCommand('license-sentinel.refresh');
+            // สแกนเฉพาะไฟล์ที่ถูกแก้ไข
+            runScan(context, treeDataProvider, hoverProvider, statusBarItem, fileName);
         }
     }, null, context.subscriptions);
 
@@ -66,57 +58,61 @@ async function activate(context) {
         debouncedUpdateDecorations(editor);
     }, null, context.subscriptions);
 
-
-    // 4. สแกนครั้งแรกเมื่อ Extension เริ่มทำงาน
+    // -- Initial Scan --
     runScan(context, treeDataProvider, hoverProvider, statusBarItem);
 }
 
 /**
  * ฟังก์ชันควบคุมการสแกนและอัปเดต UI ทั้งหมด
- * @param {vscode.ExtensionContext} context
- * @param {LicenseTreeDataProvider} treeDataProvider
- * @param {DependencyHoverProvider} hoverProvider
- * @param {vscode.StatusBarItem} statusBarItem
+ * @param {string | null} specificManifest - ไฟล์ที่ต้องการสแกนโดยเฉพาะ
  */
-async function runScan(context, treeDataProvider, hoverProvider, statusBarItem) {
-    // อัปเดต Status Bar ให้แสดงสถานะกำลังโหลด
+async function runScan(context, treeDataProvider, hoverProvider, statusBarItem, specificManifest = null) {
     statusBarItem.text = `$(sync~spin) Scanning...`;
-    statusBarItem.tooltip = 'LicenseSentinel is scanning your dependencies.';
-    statusBarItem.backgroundColor = undefined; // รีเซ็ตสีพื้นหลัง
+    statusBarItem.tooltip = 'LicenseSentinel is scanning dependencies.';
+    statusBarItem.backgroundColor = undefined;
 
     await vscode.window.withProgress({
         location: { viewId: 'license-sentinel-dependency-view' },
-        title: "LicenseSentinel: Scanning dependencies..."
+        title: "LicenseSentinel: Scanning..."
     }, async (progress) => {
-        const processedDeps = await scanWorkspace(context, progress);
-        dependencyData = processedDeps; // อัปเดต state ส่วนกลาง
+        const processedDeps = await scanWorkspace(context, progress, specificManifest);
 
-        // อัปเดต UI ทุกส่วนด้วยข้อมูลใหม่
+        // ถ้าเป็นการสแกนเฉพาะไฟล์ ให้รวมผลลัพธ์กับข้อมูลเก่า
+        if (specificManifest) {
+            // ลบข้อมูลเก่าของ manifest นี้ออก แล้วเพิ่มข้อมูลใหม่เข้าไป
+            const otherDeps = dependencyData.filter(d => d.manifestFile !== specificManifest);
+            dependencyData = [...otherDeps, ...processedDeps];
+        } else {
+            dependencyData = processedDeps;
+        }
+
+        // อัปเดต UI ทุกส่วน
         treeDataProvider.refresh(dependencyData);
         hoverProvider.updateData(dependencyData);
         if (vscode.window.activeTextEditor) {
             updateDecorations(vscode.window.activeTextEditor, dependencyData);
         }
 
-        // อัปเดต Status Bar ด้วยผลลัพธ์
-        const compliantCount = dependencyData.filter(d => d.status === 'compliant').length;
-        const nonCompliantCount = dependencyData.filter(d => d.status === 'non-compliant').length;
-        const unknownCount = dependencyData.filter(d => d.status === 'unknown' || d.license === 'Error').length;
-
-        statusBarItem.text = `$(shield) ${compliantCount} | $(question) ${unknownCount} | $(error) ${nonCompliantCount}`;
-        statusBarItem.tooltip = `LicenseSentinel: ${compliantCount} compliant, ${unknownCount} unknown, ${nonCompliantCount} non-compliant. Click to refresh.`;
-
-        if (nonCompliantCount > 0) {
-            statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-        } else {
-            statusBarItem.backgroundColor = undefined;
-        }
+        // อัปเดต Status Bar
+        updateStatusBar(statusBarItem);
     });
 }
 
-/**
- * ฟังก์ชันสำหรับ Export ข้อมูลเป็นไฟล์ CSV
- */
+function updateStatusBar(statusBarItem) {
+    const compliantCount = dependencyData.filter(d => d.status === 'compliant').length;
+    const nonCompliantCount = dependencyData.filter(d => d.status === 'non-compliant').length;
+    const unknownCount = dependencyData.filter(d => d.status === 'unknown' || d.license === 'Error').length;
+
+    statusBarItem.text = `$(shield) ${compliantCount} | $(question) ${unknownCount} | $(error) ${nonCompliantCount}`;
+    statusBarItem.tooltip = `LicenseSentinel: ${compliantCount} compliant, ${unknownCount} unknown, ${nonCompliantCount} non-compliant. Click to refresh.`;
+
+    if (nonCompliantCount > 0) {
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    } else {
+        statusBarItem.backgroundColor = undefined;
+    }
+}
+
 async function exportDataAsCsv() {
     if (dependencyData.length === 0) {
         vscode.window.showInformationMessage('No dependency data to export. Please run a scan first.');
