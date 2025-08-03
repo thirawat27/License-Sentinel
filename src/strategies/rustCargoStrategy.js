@@ -1,4 +1,3 @@
-const axios = require('axios');
 const toml = require('toml');
 
 /**
@@ -44,8 +43,9 @@ const rustCargoStrategy = {
      */
     async fetchLicenseInfo(packageName, version) {
         // crates.io API
-        const response = await axios.get(`https://crates.io/api/v1/crates/${packageName}/${version}`);
-        const crateData = response.data.version;
+        const response = await fetch(`https://crates.io/api/v1/crates/${packageName}/${version}`);
+        const data = await response.json();
+        const crateData = data.version;
         
         return {
             license: crateData.license || 'N/A',

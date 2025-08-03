@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 const goModStrategy = {
     fileName: 'go.mod',
 
@@ -22,9 +20,10 @@ const goModStrategy = {
 
     async fetchLicenseInfo(packageName) {
         // Go Package Discovery API
-        const response = await axios.get(`https://pkg.go.dev/${packageName}?tab=licenses`);
+        const response = await fetch(`https://pkg.go.dev/${packageName}?tab=licenses`);
+        const data = await response.text();
         // การดึง license จาก HTML ค่อนข้างซับซ้อน จะแสดงผลแบบง่ายไปก่อน
-        const licenseMatch = response.data.match(/<h2 id="lic-0".*?>([^<]+)<\/h2>/);
+        const licenseMatch = data.match(/<h2 id="lic-0".*?>([^<]+)<\/h2>/);
 
         return {
             license: licenseMatch ? licenseMatch[1] : 'N/A',

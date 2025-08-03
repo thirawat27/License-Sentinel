@@ -2,7 +2,7 @@
   "name": "license-sentinel",
   "displayName": "License Sentinel",
   "description": "A powerful VS Code extension to scan, manage, and report OSS licenses for multi-language projects.",
-  "version": "0.0.1", 
+  "version": "0.0.1",
   "publisher": "thirawat27",
   "icon": "image/LicenseSentinel.png",
   "repository": {
@@ -18,12 +18,9 @@
   ],
   "activationEvents": [
     "onView:license-sentinel-dependency-view",
-    "workspaceContains:**/package.json",
-    "workspaceContains:**/composer.json",
-    "workspaceContains:**/pyproject.toml",
-    "workspaceContains:**/pom.xml",
-    "workspaceContains:**/go.mod",
-    "workspaceContains:**/Cargo.toml"
+    "onCommand:license-sentinel.refresh",
+    "onCommand:license-sentinel.clearCache",
+    "onCommand:license-sentinel.exportCsv"
   ],
   "main": "./extension.js",
   "contributes": {
