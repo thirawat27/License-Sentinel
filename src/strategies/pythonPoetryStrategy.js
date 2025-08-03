@@ -1,3 +1,4 @@
+const axios = require('axios');
 const toml = require('toml');
 
 const pythonPoetryStrategy = {
@@ -15,17 +16,16 @@ const pythonPoetryStrategy = {
 
     async fetchLicenseInfo(packageName) {
         // PyPI API
-        const response = await fetch(`https://pypi.org/pypi/${packageName}/json`);
-        const data = await response.json();
-        const license = data.info.license || 'N/A';
+        const response = await axios.get(`https://pypi.org/pypi/${packageName}/json`);
+        const license = response.data.info.license || 'N/A';
         // PyPI ไม่มี license field ที่ดี ต้องดูจาก classifiers
-        const classifiers = data.info.classifiers || [];
+        const classifiers = response.data.info.classifiers || [];
         const licenseClassifier = classifiers.find(c => c.startsWith('License ::'));
         const cleanLicense = licenseClassifier ? licenseClassifier.split('::').pop().trim() : license;
 
         return {
             license: cleanLicense === 'OSI Approved' ? 'N/A' : cleanLicense,
-            homepage: data.info.project_url || `https://pypi.org/project/${packageName}`
+            homepage: response.data.info.project_url || `https://pypi.org/project/${packageName}`
         };
     }
 };

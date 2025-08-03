@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 const npmStrategy = {
     fileName: 'package.json',
     
@@ -7,11 +9,10 @@ const npmStrategy = {
     },
 
     async fetchLicenseInfo(packageName) {
-        const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`);
-        const data = await response.json();
+        const response = await axios.get(`https://registry.npmjs.org/${packageName}/latest`);
         return {
-            license: data.license || 'N/A',
-            homepage: data.homepage || `https://www.npmjs.com/package/${packageName}`
+            license: response.data.license || 'N/A',
+            homepage: response.data.homepage || `https://www.npmjs.com/package/${packageName}`
         };
     }
 };
