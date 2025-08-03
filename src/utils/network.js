@@ -1,89 +1,55 @@
-// This file provides utility functions for making network requests using HTTPS.
-// ไฟล์นี้มีฟังก์ชันอำนวยความสะดวกสำหรับการทำ network requests โดยใช้ HTTPS
+// This file provides utility functions for making network requests using axios.
+// ไฟล์นี้มีฟังก์ชันอำนวยความสะดวกสำหรับการทำ network requests โดยใช้ axios
+const axios = require("axios"); // Import the axios library. นำเข้าไลบรารี axios
 
-const https = require("https"); // Import the HTTPS module. นำเข้าโมดูล HTTPS
+const defaultOptions = {
+  headers: {
+    "User-Agent": "Node.js/LicenseSentinel-VSCode-Extension",
+  },
+};
 
-// Function to fetch data from a URL using HTTPS.
-// ฟังก์ชันสำหรับดึงข้อมูลจาก URL โดยใช้ HTTPS
-function fetchWithHttps(url, options = {}) {
-  // Return a new promise.
-  // คืนค่า promise ใหม่
-  return new Promise((resolve, reject) => {
-    // Make an HTTPS GET request.
-    // สร้าง HTTPS GET request
-    const request = https.get(url, options, (response) => {
-      // Handle redirects (300-399 status codes).
-      // จัดการ redirects (status code 300-399)
-      if (
-        response.statusCode >= 300 &&
-        response.statusCode < 400 &&
-        response.headers.location
-      ) {
-        // Follow the redirect.
-        // ตาม redirect
-        return fetchWithHttps(response.headers.location, options)
-          .then(resolve)
-          .catch(reject);
-      }
-
-      // Handle errors (status codes outside 200-299 range).
-      // จัดการ errors (status code นอกช่วง 200-299)
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        // Create an error object.
-        // สร้าง error object
-        const error = new Error(
-          `Request Failed. Status Code: ${response.statusCode} (${response.statusMessage})`
-        );
-        error.statusCode = response.statusCode;
-        return reject(error);
-      }
-
-      // Accumulate the response body.
-      // สะสม response body
-      let body = "";
-      response.setEncoding("utf8");
-      response.on("data", (chunk) => {
-        body += chunk;
-      });
-
-      // Resolve the promise when the response is complete.
-      // Resolve promise เมื่อ response เสร็จสมบูรณ์
-      response.on("end", () => {
-        resolve(body);
-      });
-    });
-
-    // Handle network errors.
-    // จัดการ network errors
-    request.on("error", (err) => {
-      err.statusCode = "NETWORK_ERROR";
-      reject(err);
-    });
-
-    // End the request.
-    // จบ request
-    request.end();
-  });
+/**
+ * Fetches text data from a URL using axios.
+ * @param {string} url The URL to fetch data from.
+ * @param {object} options Axios request configuration options.
+ * @returns {Promise<string>} A promise that resolves to the text data.
+ */
+// Fetches text data from a URL using axios.
+// ฟังก์ชันสำหรับดึงข้อมูลข้อความจาก URL โดยใช้ axios
+async function fetchText(url, options = {}) {
+  try {
+    const response = await axios.get(url, { ...defaultOptions, ...options });
+    return response.data;
+  } catch (error) {
+    // Handle network or other errors from axios.
+    // จัดการ network errors หรือ error อื่นๆ จาก axios
+    console.error(
+      `Request Failed to ${url}. Status Code: ${error.response?.status} (${error.message})`
+    );
+    // Create a new error object to standardize the error format.
+    // สร้าง error object ใหม่เพื่อให้มีรูปแบบ error ที่เป็นมาตรฐานเดียวกัน
+    const customError = new Error(error.message);
+    customError.statusCode = error.response?.status || 'NETWORK_ERROR';
+    throw customError;
+  }
 }
 
-// Function to fetch JSON data from a URL using HTTPS.
-// ฟังก์ชันสำหรับดึงข้อมูล JSON จาก URL โดยใช้ HTTPS
+/**
+ * Fetches JSON data from a URL using axios.
+ * @param {string} url The URL to fetch data from.
+ * @param {object} options Axios request configuration options.
+ * @returns {Promise<object>} A promise that resolves to the JSON data.
+ */
+// Fetches JSON data from a URL using axios.
+// ฟังก์ชันสำหรับดึงข้อมูล JSON จาก URL โดยใช้ axios
 async function fetchJson(url, options = {}) {
-  // Set default options, including the User-Agent header.
-  // ตั้งค่า default options รวมถึง header User-Agent
-  const defaultOptions = {
-    headers: {
-      "User-Agent": "Node.js/LicenseSentinel-VSCode-Extension",
-    },
-    ...options,
-  };
-  // Fetch the data using fetchWithHttps.
-  // ดึงข้อมูลโดยใช้ fetchWithHttps
-  const body = await fetchWithHttps(url, defaultOptions);
+  const body = await fetchText(url, options);
   try {
-    // Parse the JSON data.
-    // Parse ข้อมูล JSON
-    return JSON.parse(body);
+    // axios automatically parses JSON if content-type is correct,
+    // but the body might already be an object. If it's a string, we parse.
+    // axios จะ parse JSON อัตโนมัติถ้า content-type ถูกต้อง
+    // แต่ body อาจจะเป็น object อยู่แล้ว ถ้าเป็น string เราจะ parse เอง
+    return (typeof body === 'string') ? JSON.parse(body) : body;
   } catch (error) {
     // Handle JSON parsing errors.
     // จัดการ errors ในการ parse JSON
@@ -91,7 +57,7 @@ async function fetchJson(url, options = {}) {
       "Failed to parse JSON from URL:",
       url,
       "Body:",
-      body.substring(0, 500)
+      String(body).substring(0, 500)
     );
     throw new Error("Invalid JSON response");
   }
@@ -99,4 +65,4 @@ async function fetchJson(url, options = {}) {
 
 // Export the functions.
 // Export ฟังก์ชัน
-module.exports = { fetchWithHttps, fetchJson };
+module.exports = { fetchJson, fetchText };

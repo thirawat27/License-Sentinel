@@ -1,7 +1,7 @@
 // This file defines the strategy for parsing Java Maven's pom.xml files and fetching license information.
 // ไฟล์นี้กำหนด strategy สำหรับการ parsing ไฟล์ pom.xml ของ Java Maven และดึงข้อมูล license
 
-const { fetchWithHttps } = require('../utils/network'); // Import the fetchWithHttps function from the network utils. นำเข้าฟังก์ชัน fetchWithHttps จาก network utils
+const { fetchText } = require('../utils/network'); // Import the fetchText function from the network utils. นำเข้าฟังก์ชัน fetchText จาก network utils
 const xml2js = require('xml2js'); // Import the xml2js library for parsing XML files. นำเข้าไลบรารี xml2js สำหรับ parsing ไฟล์ XML
 
 const javaMavenStrategy = {
@@ -61,7 +61,7 @@ const javaMavenStrategy = {
         
         try {
             // Fetch the .pom file content. ดึงเนื้อหาไฟล์ .pom
-            const pomContent = await fetchWithHttps(pomUrl);
+            const pomContent = await fetchText(pomUrl);
 
             // Parse the fetched .pom XML content. Parse เนื้อหา XML ของ .pom ที่ดึงมา
             const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
@@ -98,6 +98,5 @@ const javaMavenStrategy = {
 };
 
 // Export the javaMavenStrategy object. 
-
 // ส่งออก object javaMavenStrategy
 module.exports = javaMavenStrategy;
