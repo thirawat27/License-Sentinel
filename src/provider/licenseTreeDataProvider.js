@@ -1,3 +1,4 @@
+// --- START OF FILE src/provider/licenseTreeDataProvider.js ---
 const vscode = require('vscode');
 
 class LicenseTreeDataProvider {
@@ -49,23 +50,31 @@ class ManifestFileItem extends vscode.TreeItem {
     constructor(relativePath, dependencies) {
         const nonCompliantCount = dependencies.filter(d => d.status === 'non-compliant').length;
         
-        // Use relativePath as the label for clarity in monorepos
         super(relativePath, vscode.TreeItemCollapsibleState.Expanded);
         
         this.dependencies = dependencies;
         this.description = `${dependencies.length} dependencies`;
-        this.iconPath = new vscode.ThemeIcon('file-code'); // Default icon
+        this.iconPath = new vscode.ThemeIcon('file-code'); 
 
         if (nonCompliantCount > 0) {
             this.description += ` (${nonCompliantCount} non-compliant)`;
             this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
         }
+
+        // --- START: ส่วนที่เพิ่มเข้ามา ---
+        // Set the context value to identify this item type in package.json's "menus" section.
+        this.contextValue = 'manifestFile';
+        
+        // Store the URI of the file for the "Go to File" command.
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            this.resourceUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, relativePath);
+        }
+        // --- END: ส่วนที่เพิ่มเข้ามา ---
     }
 }
 
 class DependencyItem extends vscode.TreeItem {
     constructor(dep) {
-        // Clean up version string for display
         const displayVersion = String(dep.version || '').replace(/[~^]/g, '');
         super(`${dep.name} @ ${displayVersion}`, vscode.TreeItemCollapsibleState.None);
 
@@ -79,9 +88,20 @@ class DependencyItem extends vscode.TreeItem {
         );
         this.tooltip.isTrusted = true;
 
+        // --- START: ส่วนที่เพิ่มเข้ามา ---
+        // Store the full dependency object to pass to commands.
+        this.dependencyInfo = dep; 
+        
+        // Set context value based on whether a homepage exists, allowing for conditional menu items.
+        this.contextValue = 'dependencyItem';
+        if (dep.homepage) {
+            this.contextValue += 'WithHomepage'; // e.g., 'dependencyItemWithHomepage'
+        }
+        // --- END: ส่วนที่เพิ่มเข้ามา ---
+
         if (dep.homepage) {
             this.command = {
-                command: 'vscode.open',
+                command: 'vscode.open', // Default click action
                 title: 'Open Homepage',
                 arguments: [vscode.Uri.parse(dep.homepage)]
             };

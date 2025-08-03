@@ -1,4 +1,4 @@
-const { fetchJson } = require('../utils/network');
+const { fetchWithHttps } = require('../utils/network');
 const xml2js = require('xml2js');
 
 const javaMavenStrategy = {
@@ -15,27 +15,50 @@ const javaMavenStrategy = {
                  const groupId = dep.groupId[0];
                  const artifactId = dep.artifactId[0];
                  const version = dep.version[0];
-                 // key จะเป็น groupId:artifactId
                  deps[`${groupId}:${artifactId}`] = version;
             }
         });
         return deps;
     },
 
-    async fetchLicenseInfo(packageName) {
-        // Maven Central API
+    async fetchLicenseInfo(packageName, packageVersion) {
         const [groupId, artifactId] = packageName.split(':');
-        const response = await fetchJson(`https://search.maven.org/solrsearch/select?q=g:"${groupId}"+AND+a:"${artifactId}"&core=gav&rows=1&wt=json`);
-        const doc = response.data.response.docs[0];
-        
-        if (!doc) return { license: 'N/A', homepage: `https://mvnrepository.com/artifact/${groupId}/${artifactId}` };
+        // Clean up version string from potential Maven property placeholders
+        const version = packageVersion.replace(/\$|\{|\}/g, ''); 
 
-        // Attempting to fetch the POM file to get the license information is complex.
-        // For simplicity, we will continue to mark it for manual check, which is a safer default.
-        return {
-            license: 'Check Manually', // Maven ecosystem often requires pom inspection for definitive license
-            homepage: `https://mvnrepository.com/artifact/${groupId}/${artifactId}/${doc.v}`
-        };
+        // Construct the URL to the .pom file directly from Maven Central
+        const groupPath = groupId.replace(/\./g, '/');
+        const pomUrl = `https://repo1.maven.org/maven2/${groupPath}/${artifactId}/${version}/${artifactId}-${version}.pom`;
+        
+        try {
+            // Fetch the .pom file content
+            const pomContent = await fetchWithHttps(pomUrl);
+
+            // Parse the fetched .pom XML content
+            const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
+            const pomData = await parser.parseStringPromise(pomContent);
+
+            // Extract license information
+            let license = 'N/A';
+            if (pomData.project && pomData.project.licenses && pomData.project.licenses.license) {
+                // Handle both single and multiple licenses
+                const licenses = Array.isArray(pomData.project.licenses.license) 
+                    ? pomData.project.licenses.license 
+                    : [pomData.project.licenses.license];
+                
+                license = licenses.map(l => l.name || 'N/A').join(' OR ');
+            }
+
+            return {
+                license: license || 'N/A',
+                homepage: (pomData.project && pomData.project.url) || `https://mvnrepository.com/artifact/${groupId}/${artifactId}/${version}`
+            };
+
+        } catch (error) {
+            console.error(`Failed to fetch/parse .pom for ${packageName}@${version}. URL: ${pomUrl}. Error: ${error.message}`);
+            // Re-throw the error so the scanner can handle it and display a specific message
+            throw error;
+        }
     }
 };
 

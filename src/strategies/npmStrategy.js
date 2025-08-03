@@ -9,7 +9,14 @@ const npmStrategy = {
     },
 
     async fetchLicenseInfo(packageName) {
-        const responseData = await fetchJson(`https://registry.npmjs.org/${packageName}/latest`);
+        // --- START: ส่วนที่แก้ไข ---
+        // URL-encode the package name to handle scoped packages (e.g., @scope/package).
+        // The '/' character must be encoded as '%2f' for the npm registry API.
+        const encodedPackageName = packageName.replace('/', '%2f');
+        
+        const responseData = await fetchJson(`https://registry.npmjs.org/${encodedPackageName}/latest`);
+        // --- END: ส่วนที่แก้ไข ---
+
         return {
             license: responseData.license || 'N/A',
             homepage: responseData.homepage || `https://www.npmjs.com/package/${packageName}`

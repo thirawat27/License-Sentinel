@@ -8,89 +8,100 @@
 
 **Your Project’s Automated Open Source License Guardian for VS Code**
 
-LicenseSentinel empowers development teams to manage, audit, and enforce open-source license policies directly within Visual Studio Code, eliminating manual overhead and legal surprises.
-
----
-
-## 🚀 Overview
-
-Open-source dependencies accelerate development but introduce licensing complexity and risks, such as:
-
-* **License Incompatibility**: Conflicts between permissive and copyleft licenses
-* **Unvetted Components**: Bundled dependencies with unknown or custom licenses
-* **Compliance Overhead**: Manual auditing across manifests, CI pipelines, and documentation
-
-**LicenseSentinel** seamlessly integrates into your workflow, providing continuous scanning, real-time alerts, and customizable policy enforcement so you can focus on building, not legal checklists.
+License Sentinel empowers development teams to manage, audit, and enforce open-source license policies directly within Visual Studio Code. It seamlessly integrates into your workflow, providing continuous scanning, real-time insights, and powerful actions to eliminate manual overhead and legal surprises.
 
 ---
 
 ## 🔍 Features
 
-### 1. Real-Time Scanning and Inline Insights
+### 1. Comprehensive Dependency Tree
+Click the 🛡️ icon in the Activity Bar to get a clear, organized view of all dependencies across your workspace.
+*   **Grouped by Manifest**: Dependencies are grouped by their manifest file (e.g., `frontend/package.json`, `backend/pom.xml`), perfect for monorepos.
+*   **At-a-Glance Status**: Instantly identify the status of each dependency with intuitive icons:
+    *   ✅ **Compliant**: The license is in your `allowedLicenses` list.
+    *   ❌ **Non-Compliant**: The license is in your `deniedLicenses` list.
+    *   ❓ **Unknown/Error**: The license is not in any policy list, or an error occurred.
+*   **Built-in Filtering**: Use the filter box to quickly find specific dependencies or files.
 
-* **On-Save Analysis**: Automatically scan dependency manifests (e.g., `package.json`, `pom.xml`) every time you save a file.
-* **Inline Decorations**: License information appears directly in code editors, with colored badges for compliant, unknown, and non-compliant statuses.
-* **Hover Details**: Detailed popups show full license text, version, repository link, and risk level.
+### 2. Real-Time Editor Insights
+Get immediate feedback without leaving your code.
+*   **Inline Decorations**: License information and compliance status appear directly next to the dependency line in your manifest files.
+*   **Detailed Hover Information**: Hover over a dependency to see a popup with its name, version, license, status, and a direct link to its homepage.
+*   **On-Save Analysis**: The extension automatically re-scans a manifest file every time you save it.
 
-### 2. Activity Bar Dashboard
+### 3. Interactive Status Bar
+The status bar provides a persistent, summarized overview of your project's license health.
+*   **Live Counts**: See the total number of compliant, unknown, and non-compliant dependencies at a glance.
+*   **Click to Refresh**: Simply click the status bar item to trigger a full workspace scan at any time.
 
-* **Aggregated Overview**: Click the 🛡️ icon in the Activity Bar to open a dashboard summarizing:
+### 4. Powerful Context Menu Actions
+Right-click to access powerful commands directly where you need them.
+*   **In the Tree View**:
+    *   **Go to File**: Jump directly to the manifest file.
+    *   **Open Homepage**: Open the dependency's homepage in your browser.
+    *   **Copy Dependency Info**: Copy all details of a dependency as a JSON object to your clipboard.
+    *   **Update Policy**: Instantly add a dependency's license to your `allowedLicenses` or `deniedLicenses` in `settings.json`.
+*   **In the Editor**:
+    *   Right-click within a supported manifest file to **Start Scan**, **Refresh**, or **Clear Cache & Rescan**.
 
-  * Total dependencies scanned
-  * Counts by status (✅ Compliant | ❓ Unknown | ❌ Non-Compliant)
-  * Recent changes and newly introduced risks
-* **Filtering & Search**: Filter by license type, status, or specific dependency names.
+### 5. Flexible Policy Configuration
+Define your organization's license policies in your workspace `settings.json`.
+*   **Allow & Deny Lists**: Maintain simple arrays of approved or forbidden license identifiers. The check is case-insensitive and supports multi-license strings (e.g., "MIT OR Apache-2.0").
+*   **Custom Exclusions**: Specify folders to ignore during scanning using glob patterns.
 
-### 3. Configurable Policy Rules
+    ```json
+    // .vscode/settings.json
+    {
+      "license-sentinel.allowedLicenses": ["MIT", "Apache-2.0", "BSD-3-Clause"],
+      "license-sentinel.deniedLicenses": ["GPL-2.0", "AGPL-3.0", "CC-BY-NC-SA-4.0"],
+      "license-sentinel.excludePatterns": [
+        "**/node_modules/**",
+        "**/target/**",
+        "**/build/**",
+        "**/testdata/**"
+      ]
+    }
+    ```
 
-* **Allowlist & Denylist**: Define arrays of approved or forbidden licenses in VS Code `settings.json`:
+### 6. Exportable Reports
+*   **Export to CSV**: Use the command (`LicenseSentinel: Export Dependencies as CSV`) to generate a full CSV report of all scanned dependencies and their details, perfect for audits or documentation.
 
-  ```json
-  {
-    "license-sentinel.allowedLicenses": ["MIT", "Apache-2.0", "BSD-3-Clause"],
-    "license-sentinel.deniedLicenses": ["GPL-3.0", "AGPL-3.0"],
-    "license-sentinel.cacheDurationHours": 24
-  }
-  ```
-* **Severity Levels**: Assign custom severity (e.g., warning vs. error) per license for editor diagnostics.
-* **Custom Overrides**: Per-project or per-folder rule sets for monorepos and multi-module repositories.
-
-
-### 4. Multi-Language and Multi-Platform Support
+### 7. Broad Language Support
+License Sentinel is built to handle modern polyglot projects.
 
 | Language              | Manifest File    |     Status    |
 | --------------------- | ---------------- | :-----------: |
 | JavaScript/TypeScript | `package.json`   |  ✅ Supported  |
-| Python                | `pyproject.toml` |  ✅ Supported  |
-| PHP                   | `composer.json`  |  ✅ Supported  |
-| Java                  | `pom.xml`        |  ✅ Supported  |
+| Python (Poetry)       | `pyproject.toml` |  ✅ Supported  |
+| PHP (Composer)        | `composer.json`  |  ✅ Supported  |
+| Java (Maven)          | `pom.xml`        |  ✅ Supported  |
 | Go                    | `go.mod`         |  ✅ Supported  |
-| Rust                  | `Cargo.toml`     |  ✅ Supported  |
+| Rust (Cargo)          | `Cargo.toml`     |  ✅ Supported  |
 | Ruby                  | `Gemfile.lock`   | ⏳ Coming Soon |
 | .NET (C#)             | `*.csproj`       | ⏳ Coming Soon |
 
 ---
 
-## 🛠️ Installation & Setup
+## 🛠️ Getting Started
 
-1. **Install from Marketplace**
+1.  **Install from Marketplace**
+    *   Open VS Code, go to Extensions (`Ctrl+Shift+X`), search for **License Sentinel**, and click **Install**.
 
-   * Open VS Code, go to Extensions (`Ctrl+Shift+X`), search for **LicenseSentinel**, and click **Install**.
+2.  **Configure Your Policies (Optional but Recommended)**
+    *   Open your workspace `settings.json` file (`Ctrl+Shift+P` → `Preferences: Open Workspace Settings (JSON)`).
+    *   Add your `license-sentinel.allowedLicenses` and `license-sentinel.deniedLicenses` rules.
 
-2. **Configure Settings**
+3.  **How it Works**
+    *   License Sentinel scans your workspace automatically upon startup and when you save a supported manifest file.
+    *   You can trigger a manual scan at any time using:
+        *   The **Refresh** button in the License Sentinel view.
+        *   The **Status Bar** item.
+        *   The right-click **Context Menu** in a manifest file.
+        *   The Command Palette (`Ctrl+Shift+P` → `LicenseSentinel: Refresh Scan`).
 
-   * Open your user or workspace `settings.json` and add your policy rules (see Configurable Policy Rules).
-
-3. **Initial Scan**
-
-   * Trigger a manual scan via the command palette (`Ctrl+Shift+P` → `LicenseSentinel: Scan Dependencies`).
-
-4. **Review & Resolve**
-
-   * Check diagnostics in the Problems panel and hover over inline badges to review license details.
-
----
-
+4.  **Review & Resolve**
+    *   Use the **License Sentinel Activity Bar view** to see a complete list of dependencies and their status.
+    *   Look for inline decorations and hover over them in your manifest files for quick insights.
 
 ---
 
@@ -98,11 +109,11 @@ Open-source dependencies accelerate development but introduce licensing complexi
 
 We welcome all contributions—from bug reports and feature requests to pull requests and documentation improvements.
 
-1. Fork this repository.
-2. Create a feature branch (`git checkout -b feature/YourFeature`).
-3. Commit your changes (`git commit -m 'Add YourFeature'`).
-4. Push to the branch (`git push origin feature/YourFeature`).
-5. Open a Pull Request.
+1.  Fork this repository.
+2.  Create a feature branch (`git checkout -b feature/YourFeature`).
+3.  Commit your changes (`git commit -m 'Add YourFeature'`).
+4.  Push to the branch (`git push origin feature/YourFeature`).
+5.  Open a Pull Request.
 
 Please follow the [Contributor Guidelines](CONTRIBUTING.md) and ensure all new code is covered by unit tests.
 
@@ -111,7 +122,6 @@ Please follow the [Contributor Guidelines](CONTRIBUTING.md) and ensure all new c
 ## 📄 License
 
 ```
-
 MIT License
 
 Copyright (c) 2025 Thirawat Sinlapasomsak

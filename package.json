@@ -14,13 +14,24 @@
   },
   "categories": [
     "Linters",
+    "Programming Languages",
     "Other"
   ],
+  "keywords": [
+    "license",
+    "compliance",
+    "scanner",
+    "dependency",
+    "npm",
+    "composer",
+    "maven",
+    "cargo",
+    "poetry",
+    "oss"
+  ],
   "activationEvents": [
-    "onView:license-sentinel-dependency-view",
-    "onCommand:license-sentinel.refresh",
-    "onCommand:license-sentinel.clearCache",
-    "onCommand:license-sentinel.exportCsv"
+    "onStartup",
+    "workspaceContains:**/{package.json,composer.json,pyproject.toml,pom.xml,go.mod,Cargo.toml}"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -45,23 +56,48 @@
     "commands": [
       {
         "command": "license-sentinel.refresh",
-        "title": "Refresh License Status",
+        "title": "License Sentinel: Refresh Scan",
         "icon": "$(refresh)"
       },
       {
         "command": "license-sentinel.clearCache",
-        "title": "Clear License Cache"
+        "title": "License Sentinel: Clear Cache & Rescan"
       },
       {
         "command": "license-sentinel.exportCsv",
         "title": "Export Dependencies as CSV",
         "icon": "$(export)"
+      },
+      {
+        "command": "license-sentinel.goToManifestFile",
+        "title": "Go to File"
+      },
+      {
+        "command": "license-sentinel.openHomepage",
+        "title": "Open Homepage"
+      },
+      {
+        "command": "license-sentinel.addAllowedLicense",
+        "title": "License Sentinel: Add to Allowed Licenses"
+      },
+      {
+        "command": "license-sentinel.addDeniedLicense",
+        "title": "License Sentinel: Add to Denied Licenses"
+      },
+      {
+        "command": "license-sentinel.copyDependencyInfo",
+        "title": "Copy Dependency Info (JSON)"
+      },
+      {
+        "command": "license-sentinel.startScan",
+        "title": "License Sentinel: Start Scan"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "license-sentinel.refresh",
+          "title": "Refresh",
           "when": "view == license-sentinel-dependency-view",
           "group": "navigation@1"
         },
@@ -69,6 +105,50 @@
           "command": "license-sentinel.exportCsv",
           "when": "view == license-sentinel-dependency-view",
           "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "license-sentinel.goToManifestFile",
+          "when": "view == license-sentinel-dependency-view && viewItem == 'manifestFile'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "license-sentinel.openHomepage",
+          "when": "view == license-sentinel-dependency-view && viewItem =~ /dependencyItemWithHomepage/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "license-sentinel.copyDependencyInfo",
+          "when": "view == license-sentinel-dependency-view && viewItem =~ /dependencyItem/",
+          "group": "copy@1"
+        },
+        {
+          "command": "license-sentinel.addAllowedLicense",
+          "when": "view == license-sentinel-dependency-view && viewItem =~ /dependencyItem/",
+          "group": "policy@1"
+        },
+        {
+          "command": "license-sentinel.addDeniedLicense",
+          "when": "view == license-sentinel-dependency-view && viewItem =~ /dependencyItem/",
+          "group": "policy@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "license-sentinel.startScan",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "group": "licenseSentinel@1"
+        },
+        {
+          "command": "license-sentinel.refresh",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "group": "licenseSentinel@2"
+        },
+        {
+          "command": "license-sentinel.clearCache",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "group": "licenseSentinel@3"
         }
       ]
     },
@@ -82,17 +162,23 @@
             "ISC",
             "Apache-2.0"
           ],
-          "description": "List of approved OSS licenses."
+          "description": "List of approved OSS licenses (case-insensitive)."
         },
         "license-sentinel.deniedLicenses": {
           "type": "array",
           "default": [],
-          "description": "List of explicitly denied OSS licenses."
+          "description": "List of explicitly denied OSS licenses (case-insensitive)."
         },
-        "license-sentinel.cacheDurationHours": {
-          "type": "number",
-          "default": 24,
-          "description": "Duration in hours to keep license data in cache."
+        "license-sentinel.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/vendor/**",
+            "**/target/**",
+            "**/dist/**",
+            "**/build/**"
+          ],
+          "description": "An array of glob patterns to exclude from scanning. Prepend '**/' to match in any subdirectory."
         }
       }
     }

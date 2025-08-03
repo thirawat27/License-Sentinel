@@ -1,3 +1,4 @@
+// --- START OF FILE extension.js ---
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs/promises');
@@ -9,6 +10,7 @@ const { convertToCsv, debounce } = require('./src/utils/text');
 // Global state to hold the latest dependency data
 let dependencyData = [];
 let isActivated = false;
+let uiManagers = {}; // To store UI providers
 
 /**
  * Main activation function for the extension.
@@ -22,7 +24,7 @@ async function activate(context) {
 
     console.log('LicenseSentinel is now active!');
 
-    // 1. Setup UI Providers
+    // 1. Setup UI Providers and store them
     const treeDataProvider = new LicenseTreeDataProvider();
     vscode.window.createTreeView('license-sentinel-dependency-view', { treeDataProvider, showCollapseAll: true });
 
@@ -37,23 +39,83 @@ async function activate(context) {
     context.subscriptions.push(statusBarItem);
     statusBarItem.show();
 
-    // 2. Register Commands
-    const refreshCommand = vscode.commands.registerCommand('license-sentinel.refresh',
-        () => runScan(context, treeDataProvider, hoverProvider, statusBarItem)
-    );
-    const clearCacheCommand = vscode.commands.registerCommand('license-sentinel.clearCache', () => {
+    // Store UI managers for easy access
+    uiManagers = { treeDataProvider, hoverProvider, statusBarItem };
+
+    // 2. Register ALL Commands (old and new)
+    registerCommands(context);
+
+    // 3. Setup Automation and Event Listeners
+    setupEventListeners(context);
+    
+    // 4. Initial scan on activation
+    runScan(context);
+}
+
+/**
+ * Registers all commands for the extension.
+ * @param {vscode.ExtensionContext} context 
+ */
+function registerCommands(context) {
+    // --- Standard Commands ---
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.refresh',
+        () => runScan(context)
+    ));
+    
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.clearCache', () => {
         const keysToClear = context.workspaceState.keys().filter(key => key.startsWith('license-sentinel:'));
         const promises = keysToClear.map(key => context.workspaceState.update(key, undefined));
         Promise.all(promises).then(() => {
             vscode.window.showInformationMessage('LicenseSentinel cache cleared!');
             vscode.commands.executeCommand('license-sentinel.refresh');
         });
-    });
-    const exportCsvCommand = vscode.commands.registerCommand('license-sentinel.exportCsv', () => exportDataAsCsv());
+    }));
 
-    context.subscriptions.push(refreshCommand, clearCacheCommand, exportCsvCommand);
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.exportCsv', () => exportDataAsCsv()));
 
-    // 3. Setup Automation and Event Listeners
+    // --- New Context Menu Commands ---
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.goToManifestFile', (item) => {
+        if (item instanceof vscode.TreeItem && item.resourceUri) {
+            vscode.window.showTextDocument(item.resourceUri);
+        } else {
+            vscode.window.showWarningMessage('Could not find the file path for this item.');
+        }
+    }));
+    
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.openHomepage', (item) => {
+        if (item && item.dependencyInfo && item.dependencyInfo.homepage) {
+            vscode.env.openExternal(vscode.Uri.parse(item.dependencyInfo.homepage));
+        } else {
+             vscode.window.showWarningMessage('No homepage URL available for this dependency.');
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.copyDependencyInfo', (item) => {
+        if (item && item.dependencyInfo) {
+            const infoString = JSON.stringify(item.dependencyInfo, null, 2);
+            vscode.env.clipboard.writeText(infoString);
+            vscode.window.showInformationMessage(`Copied info for ${item.dependencyInfo.name} to clipboard.`);
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.addAllowedLicense', (item) => {
+        if (item && item.dependencyInfo) {
+            updateLicensePolicy('allowedLicenses', item.dependencyInfo.license, context);
+        }
+    }));
+    
+    context.subscriptions.push(vscode.commands.registerCommand('license-sentinel.addDeniedLicense', (item) => {
+        if (item && item.dependencyInfo) {
+            updateLicensePolicy('deniedLicenses', item.dependencyInfo.license, context);
+        }
+    }));
+}
+
+/**
+ * Sets up file watchers and editor event listeners.
+ * @param {vscode.ExtensionContext} context
+ */
+function setupEventListeners(context) {
     const debouncedUpdateDecorations = debounce((editor) => {
         if (editor) {
             updateDecorations(editor, dependencyData);
@@ -63,7 +125,7 @@ async function activate(context) {
     const onSaveWatcher = vscode.workspace.onDidSaveTextDocument(doc => {
         const supportedFiles = ['package.json', 'composer.json', 'pyproject.toml', 'pom.xml', 'go.mod', 'Cargo.toml'];
         if (supportedFiles.includes(path.basename(doc.fileName))) {
-            runScan(context, treeDataProvider, hoverProvider, statusBarItem);
+            runScan(context);
         }
     });
 
@@ -77,19 +139,50 @@ async function activate(context) {
     }
 
     context.subscriptions.push(onSaveWatcher, onActiveEditorChange);
+}
 
-    // 4. Initial scan on activation
-    runScan(context, treeDataProvider, hoverProvider, statusBarItem);
+/**
+ * A helper function to update license policies in workspace settings.
+ * @param {'allowedLicenses' | 'deniedLicenses'} policyType The policy to update.
+ * @param {string} license The license string to add.
+ * @param {vscode.ExtensionContext} context The extension context for rescanning.
+ */
+async function updateLicensePolicy(policyType, license, context) {
+    if (!license || license === 'N/A' || license === 'Error') {
+        vscode.window.showWarningMessage('Cannot add an invalid or missing license to the policy.');
+        return;
+    }
+    const config = vscode.workspace.getConfiguration('license-sentinel');
+    const currentPolicies = config.get(policyType, []);
+    
+    // Use a Set for a case-insensitive check and to avoid duplicates.
+    const policySet = new Set(currentPolicies.map(l => String(l).toLowerCase()));
+    if (policySet.has(license.toLowerCase())) {
+        vscode.window.showInformationMessage(`License "${license}" is already in the '${policyType}' list.`);
+        return;
+    }
+
+    // Add the new license and update the workspace settings.
+    const newPolicies = [...currentPolicies, license];
+    await config.update(policyType, newPolicies, vscode.ConfigurationTarget.Workspace);
+    
+    const choice = await vscode.window.showInformationMessage(
+        `"${license}" was added to '${policyType}'.`,
+        'Refresh Now'
+    );
+    
+    // Refresh to apply the new policy if the user agrees.
+    if (choice === 'Refresh Now') {
+        runScan(context);
+    }
 }
 
 /**
  * Central function to orchestrate scanning and UI updates.
  * @param {vscode.ExtensionContext} context
- * @param {LicenseTreeDataProvider} treeDataProvider
- * @param {DependencyHoverProvider} hoverProvider
- * @param {vscode.StatusBarItem} statusBarItem
  */
-async function runScan(context, treeDataProvider, hoverProvider, statusBarItem) {
+async function runScan(context) {
+    const { treeDataProvider, hoverProvider, statusBarItem } = uiManagers;
     statusBarItem.text = `$(sync~spin) License Scan`;
     statusBarItem.tooltip = 'LicenseSentinel is scanning your workspace for dependencies.';
     statusBarItem.backgroundColor = undefined;

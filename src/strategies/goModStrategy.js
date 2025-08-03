@@ -1,4 +1,4 @@
-const { fetchWithHttps } = require('../utils/network');
+const { fetchJson } = require('../utils/network');
 
 const goModStrategy = {
     fileName: 'go.mod',
@@ -12,7 +12,6 @@ const goModStrategy = {
         const lineRegex = /^\s*([^\s]+)\s+([^\s]+)/gm;
         let match;
         while ((match = lineRegex.exec(contentToParse)) !== null) {
-            // กรองบรรทัดที่ไม่ใช่ dependency ออก
             if (match[1] !== 'require' && !match[1].startsWith('//') && match[1] !== 'go') {
                 deps[match[1]] = match[2];
             }
@@ -20,17 +19,25 @@ const goModStrategy = {
         return deps;
     },
 
-    async fetchLicenseInfo(packageName) {
-        // Go Package Discovery API
-        const htmlContent = await fetchWithHttps(`https://pkg.go.dev/${packageName}?tab=licenses`);
-        // การดึง license จาก HTML ค่อนข้างซับซ้อน จะแสดงผลแบบง่ายไปก่อน
-        // This regex looks for the first license header, which is usually the primary one.
-        const licenseMatch = htmlContent.match(/<h3 id="lic-0".*?>\s*([^<]+)\s*<\/h3>/) || htmlContent.match(/<h2 id="lic-0".*?>\s*([^<]+)\s*<\/h2>/);
+    async fetchLicenseInfo(packageName, packageVersion) {
+        // Use the deps.dev API for reliable JSON-based license data
+        const version = packageVersion.startsWith('v') ? packageVersion : `v${packageVersion}`;
+        const apiUrl = `https://deps.dev/_/s/go/p/${encodeURIComponent(packageName)}/v/${encodeURIComponent(version)}/insights`;
 
-        return {
-            license: licenseMatch ? licenseMatch[1].trim() : 'N/A',
-            homepage: `https://pkg.go.dev/${packageName}`
-        };
+        try {
+            const insightsData = await fetchJson(apiUrl);
+            const licenses = insightsData.licenses || [];
+            
+            return {
+                license: licenses.length > 0 ? licenses.join(' OR ') : 'N/A',
+                homepage: `https://pkg.go.dev/${packageName}`
+            };
+
+        } catch (error) {
+            console.error(`Failed to fetch Go insights for ${packageName} from deps.dev. Error: ${error.message}`);
+            // Re-throw to be handled by the scanner
+            throw error;
+        }
     }
 };
 

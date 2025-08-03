@@ -43,14 +43,26 @@ const rustCargoStrategy = {
      */
     async fetchLicenseInfo(packageName) {
         // crates.io API
-        // We fetch the main crate data, which includes the latest version info.
+        // Fetch the main crate data, which includes information on all versions.
         const responseData = await fetchJson(`https://crates.io/api/v1/crates/${packageName}`);
+        
+        // --- START: ส่วนที่แก้ไข ---
+        // The most recent version's data is in the first element of the 'versions' array.
+        // This is more reliable than the top-level 'crate.license' which can be null.
+        const latestVersionData = responseData.versions && responseData.versions[0];
         const crateData = responseData.crate;
+
+        // Get license from the latest version, which is the most accurate source.
+        const license = (latestVersionData && latestVersionData.license) || 'N/A';
+
+        // Homepage and repository are usually on the main crate object.
+        const homepage = crateData.homepage || crateData.repository || `https://crates.io/crates/${packageName}`;
         
         return {
-            license: crateData.license || 'N/A',
-            homepage: crateData.homepage || `https://crates.io/crates/${packageName}`
+            license: license,
+            homepage: homepage
         };
+        // --- END: ส่วนที่แก้ไข ---
     }
 };
 
