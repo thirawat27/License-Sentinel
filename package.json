@@ -1,7 +1,7 @@
 {
   "name": "license-sentinel",
-  "displayName": "License Sentinel🛡️",
-  "description": "A powerful VS Code extension to scan, manage, and report OSS licenses for multi-language projects.",
+  "displayName": "License Sentinel 🛡️",
+  "description": "An intelligent, proactive assistant for managing and enforcing open-source license policies directly within VS Code.",
   "version": "0.0.1",
   "publisher": "thirawat27",
   "icon": "image/LicenseSentinel.png",
@@ -22,6 +22,9 @@
     "compliance",
     "scanner",
     "dependency",
+    "security",
+    "linter",
+    "ai",
     "npm",
     "composer",
     "maven",
@@ -30,8 +33,7 @@
     "oss"
   ],
   "activationEvents": [
-    "onStartup",
-    "workspaceContains:**/{package.json,composer.json,pyproject.toml,pom.xml,go.mod,Cargo.toml}"
+    "onStartup"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -48,7 +50,7 @@
       "license-sentinel-view-container": [
         {
           "id": "license-sentinel-dependency-view",
-          "name": "Dependencies",
+          "name": "Dependencys",
           "type": "tree"
         }
       ]
@@ -56,16 +58,17 @@
     "commands": [
       {
         "command": "license-sentinel.refresh",
-        "title": "License Sentinel🛡️: Refresh Scan",
+        "title": "License Sentinel 🛡️: Refresh Scan",
         "icon": "$(refresh)"
       },
       {
         "command": "license-sentinel.clearCache",
-        "title": "License Sentinel🛡️: Clear Cache & Rescan"
+        "title": "License Sentinel 🛡️: Clear Cache & Rescan",
+        "icon": "$(trashcan)"
       },
       {
-        "command": "license-sentinel.exportCsv",
-        "title": "Export Dependencies as CSV",
+        "command": "license-sentinel.exportReport",
+        "title": "License Sentinel 🛡️: Export Report...",
         "icon": "$(export)"
       },
       {
@@ -78,11 +81,11 @@
       },
       {
         "command": "license-sentinel.addAllowedLicense",
-        "title": "License Sentinel🛡️: Add to Allowed Licenses"
+        "title": "License Sentinel 🛡️: Add to Allowed Licenses"
       },
       {
         "command": "license-sentinel.addDeniedLicense",
-        "title": "License Sentinel🛡️: Add to Denied Licenses"
+        "title": "License Sentinel 🛡️: Add to Denied Licenses"
       },
       {
         "command": "license-sentinel.copyDependencyInfo",
@@ -90,21 +93,39 @@
       },
       {
         "command": "license-sentinel.startScan",
-        "title": "License Sentinel🛡️: Start Scan"
+        "title": "License Sentinel 🛡️: Start Scan"
+      },
+      {
+        "command": "license-sentinel.openSettings",
+        "title": "License Sentinel 🛡️: Open Settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "license-sentinel.refresh",
-          "title": "Refresh",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@1"
+          "group": "navigation@1",
+          "icon": "$(refresh)"
         },
         {
-          "command": "license-sentinel.exportCsv",
+          "command": "license-sentinel.exportReport",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@2"
+          "group": "navigation@2",
+          "icon": "$(export)"
+        },
+        {
+          "command": "license-sentinel.clearCache",
+          "when": "view == license-sentinel-dependency-view",
+          "group": "navigation@2",
+          "icon": "$(trashcan)"
+        },
+        {
+          "command": "license-sentinel.openSettings",
+          "when": "view == license-sentinel-dependency-view",
+          "group": "navigation@3",
+          "icon": "$(settings-gear)"
         }
       ],
       "view/item/context": [
@@ -160,13 +181,19 @@
           "default": [
             "MIT",
             "ISC",
-            "Apache-2.0"
+            "Apache-2.0",
+            "BSD-2-Clause",
+            "BSD-3-Clause"
           ],
           "description": "List of approved OSS licenses (case-insensitive)."
         },
         "license-sentinel.deniedLicenses": {
           "type": "array",
-          "default": [],
+          "default": [
+            "GPL-2.0",
+            "GPL-3.0",
+            "AGPL-3.0"
+          ],
           "description": "List of explicitly denied OSS licenses (case-insensitive)."
         },
         "license-sentinel.excludePatterns": {
@@ -176,7 +203,9 @@
             "**/vendor/**",
             "**/target/**",
             "**/dist/**",
-            "**/build/**"
+            "**/build/**",
+            "**/.next/**",
+            "**/.venv/**"
           ],
           "description": "An array of glob patterns to exclude from scanning. Prepend '**/' to match in any subdirectory."
         }
@@ -189,6 +218,6 @@
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
-    "eslint": "^9.32.0"
+    "eslint": "^8.0.0"
   }
 }
