@@ -1,6 +1,6 @@
 {
   "name": "license-sentinel",
-  "displayName": "License Sentinel",
+  "displayName": "License Sentinel🛡️",
   "description": "A powerful VS Code extension to scan, manage, and report OSS licenses for multi-language projects.",
   "version": "0.0.1",
   "publisher": "thirawat27",
@@ -39,7 +39,7 @@
       "activitybar": [
         {
           "id": "license-sentinel-view-container",
-          "title": "LicenseSentinel",
+          "title": "License Sentinel",
           "icon": "$(shield)"
         }
       ]
@@ -56,12 +56,12 @@
     "commands": [
       {
         "command": "license-sentinel.refresh",
-        "title": "License Sentinel: Refresh Scan",
+        "title": "License Sentinel🛡️: Refresh Scan",
         "icon": "$(refresh)"
       },
       {
         "command": "license-sentinel.clearCache",
-        "title": "License Sentinel: Clear Cache & Rescan"
+        "title": "License Sentinel🛡️: Clear Cache & Rescan"
       },
       {
         "command": "license-sentinel.exportCsv",
@@ -78,11 +78,11 @@
       },
       {
         "command": "license-sentinel.addAllowedLicense",
-        "title": "License Sentinel: Add to Allowed Licenses"
+        "title": "License Sentinel🛡️: Add to Allowed Licenses"
       },
       {
         "command": "license-sentinel.addDeniedLicense",
-        "title": "License Sentinel: Add to Denied Licenses"
+        "title": "License Sentinel🛡️: Add to Denied Licenses"
       },
       {
         "command": "license-sentinel.copyDependencyInfo",
@@ -90,7 +90,7 @@
       },
       {
         "command": "license-sentinel.startScan",
-        "title": "License Sentinel: Start Scan"
+        "title": "License Sentinel🛡️: Start Scan"
       }
     ],
     "menus": {
