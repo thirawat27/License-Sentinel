@@ -1,0 +1,112 @@
+{
+  "name": "license-sentinel",
+  "displayName": "License Sentinel",
+  "description": "A powerful VS Code extension to scan, manage, and report OSS licenses for multi-language projects.",
+  "version": "0.0.1", 
+  "publisher": "thirawat27",
+  "icon": "image/LicenseSentinel.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thirawat27/License-Sentinel"
+  },
+  "engines": {
+    "vscode": "^1.50.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:license-sentinel-dependency-view",
+    "workspaceContains:**/package.json",
+    "workspaceContains:**/composer.json",
+    "workspaceContains:**/pyproject.toml",
+    "workspaceContains:**/pom.xml",
+    "workspaceContains:**/go.mod",
+    "workspaceContains:**/Cargo.toml"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "license-sentinel-view-container",
+          "title": "LicenseSentinel",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "views": {
+      "license-sentinel-view-container": [
+        {
+          "id": "license-sentinel-dependency-view",
+          "name": "Dependencies",
+          "type": "tree"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "license-sentinel.refresh",
+        "title": "Refresh License Status",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "license-sentinel.clearCache",
+        "title": "Clear License Cache"
+      },
+      {
+        "command": "license-sentinel.exportCsv",
+        "title": "Export Dependencies as CSV",
+        "icon": "$(export)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "license-sentinel.refresh",
+          "when": "view == license-sentinel-dependency-view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "license-sentinel.exportCsv",
+          "when": "view == license-sentinel-dependency-view",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LicenseSentinel",
+      "properties": {
+        "license-sentinel.allowedLicenses": {
+          "type": "array",
+          "default": [
+            "MIT",
+            "ISC",
+            "Apache-2.0"
+          ],
+          "description": "List of approved OSS licenses."
+        },
+        "license-sentinel.deniedLicenses": {
+          "type": "array",
+          "default": [],
+          "description": "List of explicitly denied OSS licenses."
+        },
+        "license-sentinel.cacheDurationHours": {
+          "type": "number",
+          "default": 24,
+          "description": "Duration in hours to keep license data in cache."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "jsonc-parser": "^3.3.1",
+    "toml": "^3.0.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.32.0"
+  }
+}
