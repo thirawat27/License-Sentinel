@@ -27,7 +27,7 @@ We primarily use the GitHub Flow for development. To contribute code, please fol
 
 1.  **Clone the Repository**: Clone the repository you forked to your local machine.
     ```bash
-    git clone [https://github.com/thirawat27/License-Sentinel.git](https://github.com/thirawat27/License-Sentinel.git)
+    git clone https://github.com/thirawat27/License-Sentinel.git
     cd License-Sentinel
     ```
 2.  **Install Dependencies**: Install all project dependencies using npm.
