@@ -2,7 +2,7 @@
   "name": "license-sentinel",
   "displayName": "License Sentinel 🛡️",
   "description": "An intelligent, proactive assistant for managing and enforcing open-source license policies directly within VS Code.",
-  "version": "0.0.5",
+  "version": "0.0.4",
   "publisher": "thirawat27",
   "icon": "image/LicenseSentinel.png",
   "scripts": {
