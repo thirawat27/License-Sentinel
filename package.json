@@ -180,7 +180,7 @@
       ]
     },
     "configuration": {
-      "title": "LicenseSentinel",
+      "title": "License Sentinel 🛡️",
       "properties": {
         "license-sentinel.allowedLicenses": {
           "type": "array",

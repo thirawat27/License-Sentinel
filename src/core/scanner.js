@@ -87,7 +87,7 @@ async function scanWorkspace(context, progress) {
 
     // If no manifest files are found, show an information message and return an empty array.
     if (manifestFiles.length === 0) {
-        vscode.window.showInformationMessage("LicenseSentinel: No supported dependency files found in the workspace.");
+        vscode.window.showInformationMessage("License Sentinel 🛡️ : No supported dependency files found in the workspace.");
         return [];
     }
     

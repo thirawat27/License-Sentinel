@@ -19,7 +19,7 @@ const npmStrategy = {
         const tree = jsonc.parseTree(fileContent);
         // If the parsing fails (e.g., invalid JSON), log an error and return an empty array.
         if (!tree) {
-            console.error("LicenseSentinel: Could not parse package.json as a valid JSONC tree.");
+            console.error("License Sentinel 🛡️: Could not parse package.json as a valid JSONC tree.");
             return [];
         }
 

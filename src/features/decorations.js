@@ -355,7 +355,7 @@ class DependencyHoverProvider {
         // Allow the MarkdownString to render untrusted content, such as links.
         content.isTrusted = true;
         // Add a title to the hover content.
-        content.appendMarkdown(`**LicenseSentinel: ${depData.name}**\n\n`);
+        content.appendMarkdown(`**License Sentinel 🛡️ : ${depData.name}**\n\n`);
         // Add the dependency version to the hover content.
         content.appendMarkdown(`- **Version:** \`${depData.version}\`\n`);
         // Add the dependency license to the hover content.

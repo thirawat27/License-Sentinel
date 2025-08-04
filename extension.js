@@ -49,7 +49,7 @@ async function activate(context) {
     // Prevent multiple activations.
     if (isActivated) return;
     isActivated = true;
-    console.log('LicenseSentinel is now active!');
+    console.log('License Sentinel🛡️ is now active!');
 
     // Create a diagnostic collection to highlight license issues in the editor.
     diagnosticCollection = vscode.languages.createDiagnosticCollection('license-sentinel');
@@ -96,7 +96,7 @@ function registerCommands(context) {
         const promises = keysToClear.map(key => context.workspaceState.update(key, undefined));
         // Wait for all the promises to resolve, then show a message and run a new scan.
         Promise.all(promises).then(() => {
-            vscode.window.showInformationMessage('LicenseSentinel cache cleared! Starting a new scan...');
+            vscode.window.showInformationMessage('License Sentinel 🛡️ cache cleared! Starting a new scan...');
             runScan(context);
         });
     }));
@@ -230,12 +230,12 @@ async function runScan(context) {
     const { statusBarItem } = uiManagers;
     // Update the status bar to indicate that a scan is in progress.
     statusBarItem.text = `$(sync~spin) License Scan`;
-    statusBarItem.tooltip = 'LicenseSentinel is scanning your workspace...';
+    statusBarItem.tooltip = 'License Sentinel is scanning your workspace...';
 
     // Show a progress notification while the scan is running.
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: "LicenseSentinel: Scanning dependencies...",
+        title: "License Sentinel 🛡️ : Scanning dependencies...",
         cancellable: false
     }, async (progress) => {
         // Scan the workspace for dependencies and their licenses.
@@ -411,7 +411,7 @@ function updateStatusBar(statusBarItem) {
 
     // Update the status bar text with the counts.
     statusBarItem.text = `$(check) ${compliantCount} | $(warning) ${unknownCount} | $(error) ${nonCompliantCount}`;
-    statusBarItem.tooltip = `LicenseSentinel: ${compliantCount} compliant, ${unknownCount} unknown, ${nonCompliantCount} non-compliant. Click to refresh.`;
+    statusBarItem.tooltip = `License Sentinel 🛡️ : ${compliantCount} compliant, ${unknownCount} unknown, ${nonCompliantCount} non-compliant. Click to refresh.`;
 
     // If there are non-compliant dependencies, change the background color of the status bar item to red.
     if (nonCompliantCount > 0) {
