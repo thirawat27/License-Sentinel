@@ -1,7 +1,4 @@
-// --- START OF FILE strategies/pythonPoetryStrategy.js (ULTIMATE FIX) ---
-
 // This file defines the strategy for parsing Python Poetry's pyproject.toml files and fetching license information.
-// ไฟล์นี้กำหนด strategy สำหรับการ parsing ไฟล์ pyproject.toml ของ Python Poetry และดึงข้อมูล license
 
 const { fetchJson } = require('../utils/network');
 const toml = require('toml');
@@ -18,38 +15,55 @@ const pythonPoetryStrategy = {
     parseDependencies(fileContent, document) {
         const dependencies = [];
         try {
+            // Parse the TOML file content using the 'toml' library.
             const parsedToml = toml.parse(fileContent);
             
+            // Extract dependencies from both 'dependencies' and 'dev-dependencies' sections in the pyproject.toml file.
             const deps = { 
                 ...(parsedToml.tool?.poetry?.dependencies || {}), 
                 ...(parsedToml.tool?.poetry?.['dev-dependencies'] || {}) 
             };
+            // Remove the 'python' key as it's not a dependency.
             delete deps.python;
 
+            // Split the file content into lines for accurate line number tracking.
             const lines = fileContent.split(/\r?\n/);
+            // Flag to indicate if the current line is within a dependencies section.
             let inDepsSection = false;
+            // Array of strings that indicate the start of a dependencies section.
             const depSections = ['[tool.poetry.dependencies]', '[tool.poetry.dev-dependencies]'];
+            // Regular expression to extract the dependency name from a line.
             const keyRegex = /^\s*([a-zA-Z0-9_.-]+)\s*=/;
 
+            // Iterate over each line in the file.
             lines.forEach((line, index) => {
+                // Trim whitespace from the beginning and end of the line.
                 const trimmedLine = line.trim();
+                // Check if the line indicates the start of a dependencies section.
                 if (depSections.includes(trimmedLine)) {
                     inDepsSection = true;
                     return;
                 }
+                // If the line starts a new section, reset the flag unless it's a dependency-related section.
                 if (trimmedLine.startsWith('[')) {
                     const isWorkspaceOrTarget = trimmedLine.includes('.dependencies]') || trimmedLine.startsWith('[target');
                     inDepsSection = isWorkspaceOrTarget;
                     return;
                 }
 
+                // If currently inside a dependencies section.
                 if (inDepsSection) {
+                    // Attempt to match the line against the dependency key regex.
                     const match = trimmedLine.match(keyRegex);
+                    // If a match is found and a dependency name is extracted.
                     if (match && match[1]) {
                         const name = match[1];
+                        // Check if the dependency exists in the extracted dependencies.
                         if (deps[name]) {
+                             // Add the dependency to the dependencies array with its name, version, and line number.
                              dependencies.push({
                                 name,
+                                // Determine the version string, using '*' if version is not explicitly defined.
                                 version: typeof deps[name] === 'string' ? deps[name] : deps[name].version || '*',
                                 line: index
                             });
@@ -58,9 +72,11 @@ const pythonPoetryStrategy = {
                 }
             });
         } catch (e) {
+            // Log an error message if parsing the pyproject.toml file fails.
             console.error("Failed to parse pyproject.toml:", e);
         }
         
+        // Return the array of extracted dependencies.
         return dependencies;
     },
 
@@ -71,9 +87,12 @@ const pythonPoetryStrategy = {
      * @returns {Promise<object>} An object containing the license and homepage information.
      */
     async fetchLicenseInfo(packageName) {
+        // Fetch the package metadata from the PyPI API.
         const responseData = await fetchJson(`https://pypi.org/pypi/${packageName}/json`);
+        // Extract the 'info' section from the response data.
         const info = responseData.info;
         
+        // Initialize the license variable to 'N/A'.
         let foundLicense = 'N/A';
 
         // --- NEW HIERARCHY FOR FINDING THE LICENSE ---
@@ -120,6 +139,7 @@ const pythonPoetryStrategy = {
         }
 
 
+        // Return an object containing the license and homepage information.
         return {
             license: foundLicense,
             homepage: info.project_url || info.home_page || `https://pypi.org/project/${packageName}`
@@ -128,4 +148,3 @@ const pythonPoetryStrategy = {
 };
 
 module.exports = pythonPoetryStrategy;
-// --- END OF FILE strategies/pythonPoetryStrategy.js (ULTIMATE FIX) ---

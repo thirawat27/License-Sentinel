@@ -4,11 +4,11 @@
  * @param {string} key The cache key.
  * @returns {any | undefined} The cached value, or undefined if not found.
  */
-// Retrieves a value from the extension's workspace cache.
-// ดึงค่าจาก cache ของ workspace ของ extension
 function getCache(context, key) {
-    // Return the cached value, or undefined if not found.
-    // คืนค่า cached value หรือ undefined ถ้าไม่พบ
+    // This function retrieves a value from the extension's workspace state, which acts as a cache.
+    // The workspace state is specific to the current VS Code workspace and persists across sessions.
+    // It takes the extension context and a key as input.
+    // If a value is found for the given key, it's returned. Otherwise, it returns undefined.
     return context.workspaceState.get(key);
 }
 
@@ -18,14 +18,13 @@ function getCache(context, key) {
  * @param {string} key The cache key.
  * @param {any} value The value to store.
  */
-// Stores a value in the extension's workspace cache.
-// เก็บค่าใน cache ของ workspace ของ extension
 function setCache(context, key, value) {
-    // Update the workspace state with the given key and value.
-    // อัปเดต workspace state ด้วย key และ value ที่กำหนด
+    // This function stores a value in the extension's workspace state, using the provided key.
+    // The workspace state allows the extension to persist data across VS Code sessions for a specific workspace.
+    // It takes the extension context, a key, and the value to store as input.
+    // The update method is used to set or update the value associated with the key in the workspace state.
     context.workspaceState.update(key, value);
 }
 
 // Export the getCache and setCache functions.
-// ส่งออกฟังก์ชัน getCache และ setCache
 module.exports = { getCache, setCache };
