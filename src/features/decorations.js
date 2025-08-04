@@ -68,8 +68,7 @@ function updateDecorations(editor, allDependencies) {
         // Parse TOML decorations. Parse TOML decorations
         parseTomlDecorations(document, text, depsMap, compliantDecorations, nonCompliantDecorations, unknownDecorations);
     } else {
-        // Parse decorations using regex. This is a fallback for formats like go.mod and requirements.txt
-        // Parse decorations โดยใช้ regex ซึ่งเป็น fallback สำหรับ format เช่น go.mod และ requirements.txt
+        // Parse decorations using regex. Parse decorations โดยใช้ regex
         parseRegexDecorations(document, text, relevantDeps, compliantDecorations, nonCompliantDecorations, unknownDecorations);
     }
 
@@ -256,9 +255,8 @@ function parseTomlDecorations(document, text, depsMap, compliant, nonCompliant, 
 function parseRegexDecorations(document, text, relevantDeps, compliant, nonCompliant, unknown) {
     // Iterate over each relevant dependency. วนซ้ำแต่ละ relevant dependency
      relevantDeps.forEach((dep) => {
-        // Create a regex for the dependency. This regex looks for the dependency name at the start of a line or after whitespace.
-        // สร้าง regex สำหรับ dependency โดยจะมองหาชื่อ dependency ที่จุดเริ่มต้นของบรรทัดหรือหลัง whitespace
-        const depRegex = new RegExp(`(^|\\s)${dep.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[=>~\\s]`, "gm");
+        // Create a regex for the dependency. สร้าง regex สำหรับ dependency
+        const depRegex = new RegExp(`^\\s*${dep.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s`, "gm");
         // Match the regex against the text. จับคู่ regex กับ text
         let match;
         // While there are matches, create a decoration and add it to the appropriate array. ในขณะที่มี matches, สร้าง decoration และเพิ่มไปยัง array ที่เหมาะสม
@@ -316,19 +314,15 @@ class DependencyHoverProvider {
       // If there are no relevant dependencies, return null. ถ้าไม่มี relevant dependencies, ให้ return null
       if(relevantDeps.length === 0) return null;
   
-      // Get the line content to check for dependency names.
-      // ดึงเนื้อหาของบรรทัดเพื่อตรวจสอบชื่อ dependency
-      const line = document.lineAt(position.line).text;
-
-      // Find which relevant dependency name appears in the current line
-      // ค้นหาว่าชื่อ dependency ใดที่เกี่ยวข้องปรากฏในบรรทัดปัจจุบัน
-      const depData = relevantDeps.find(d => {
-          // Use a simple regex to find the package name as a whole word to avoid partial matches (e.g., 'react' in 'react-dom')
-          // ใช้ regex ง่ายๆ เพื่อค้นหาชื่อแพ็กเกจเป็นคำเต็มเพื่อหลีกเลี่ยงการจับคู่บางส่วน (เช่น 'react' ใน 'react-dom')
-          const regex = new RegExp(`\\b${d.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
-          return regex.test(line);
-      });
-      
+      // Get the word range at the position. ดึง word range ที่ position
+      const range = document.getWordRangeAtPosition(position, /"([^"]+)"/) || document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
+      // If there is no word range, return null. ถ้าไม่มี word range, ให้ return null
+      if (!range) return null;
+  
+      // Get the hovered word. ดึง hovered word
+      const hoveredWord = document.getText(range).replace(/"/g, "");
+      // Find the dependency data for the hovered word. ค้นหา dependency data สำหรับ hovered word
+      const depData = relevantDeps.find((d) => d.name === hoveredWord);
   
       // If there is dependency data, create the hover content and return a new hover object. ถ้ามี dependency data, สร้าง hover content และ return hover object ใหม่
       if (depData) {
@@ -353,9 +347,8 @@ class DependencyHoverProvider {
           // Append the link to the homepage to the content. ผนวก link ไปยัง homepage ไปยัง content
           content.appendMarkdown(`[Go to Homepage](${depData.homepage})`);
         }
-        // Return a new hover object for the entire line
-        // คืนค่า hover object ใหม่สำหรับทั้งบรรทัด
-        return new vscode.Hover(content);
+        // Return a new hover object. คืนค่า hover object ใหม่
+        return new vscode.Hover(content, range);
       }
       // If there is no dependency data, return null. ถ้าไม่มี dependency data, ให้ return null
       return null;
