@@ -78,7 +78,7 @@ License Sentinel is built to handle modern polyglot projects.
 | Language              | Manifest File    |     Status    |
 | --------------------- | ---------------- | :-----------: |
 | JavaScript/TypeScript | `package.json`   |  ✅ Supported  |
-| Python (Poetry)       | `pyproject.toml` |  ✅ Supported  |
+| Python (Poetry)       | `pyproject.toml,requirement.txt` |  ✅ Supported  |
 | PHP (Composer)        | `composer.json`  |  ✅ Supported  |
 | Java (Maven)          | `pom.xml`        |  ✅ Supported  |
 | Go                    | `go.mod`         |  ✅ Supported  |

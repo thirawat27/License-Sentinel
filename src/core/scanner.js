@@ -9,7 +9,8 @@ const { getCache, setCache } = require('./caching'); // Import caching functions
 // นำเข้า strategies ทั้งหมดสำหรับ package managers ที่แตกต่างกัน
 const npmStrategy = require('../strategies/npmStrategy'); // Strategy for parsing npm package.json files. Strategy สำหรับ parsing ไฟล์ npm package.json
 const composerStrategy = require('../strategies/composerStrategy'); // Strategy for parsing Composer composer.json files (PHP). Strategy สำหรับ parsing ไฟล์ Composer composer.json (PHP)
-const pythonPoetryStrategy = require('../strategies/pythonPoetryStrategy'); // Strategy for parsing Python Poetry pyproject.toml files. Strategy สำหรับ parsing ไฟล์ Python Poetry pyproject.toml
+const pythonPoetryStrategy = require('../strategies/pythonPoetryStrategy'); // Strategy for parsing Python Poetry pyproject.toml files. Strategyสำหรับ parsing ไฟล์ Python Poetry pyproject.toml
+const pythonRequirementsStrategy = require('../strategies/pythonRequirementsStrategy'); // Strategy for parsing Python pip requirements.txt files. Strategyสำหรับ parsing ไฟล์ Python pip requirements.txt
 const javaMavenStrategy = require('../strategies/javaMavenStrategy'); // Strategy for parsing Java Maven pom.xml files. Strategy สำหรับ parsing ไฟล์ Java Maven pom.xml
 const goModStrategy = require('../strategies/goModStrategy'); // Strategy for parsing Go Modules go.mod files. Strategy สำหรับ parsing ไฟล์ Go Modules go.mod
 const rustCargoStrategy = require('../strategies/rustCargoStrategy'); // Strategy for parsing Rust Cargo.toml files. Strategy สำหรับ parsing ไฟล์ Rust Cargo.toml
@@ -18,6 +19,7 @@ const ALL_STRATEGIES = [
     npmStrategy, // npm strategy
     composerStrategy, // Composer strategy
     pythonPoetryStrategy, // Python Poetry strategy
+    pythonRequirementsStrategy, // Python requirements.txt strategy
     javaMavenStrategy, // Java Maven strategy
     goModStrategy, // Go Modules strategy
     rustCargoStrategy // Rust Cargo strategy

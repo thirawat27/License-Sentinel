@@ -160,14 +160,14 @@ function registerProviders(context) {
     // Register the hover provider.
     // ลงทะเบียน hover provider
     context.subscriptions.push(vscode.languages.registerHoverProvider(
-        ['json', 'jsonc', 'toml', 'xml', { scheme: 'file', language: 'go.mod' }],
+        ['json', 'jsonc', 'toml', 'xml', 'pip-requirements', { scheme: 'file', language: 'go.mod' }],
         uiManagers.hoverProvider
     ));
     
     // Register the code actions provider.
     // ลงทะเบียน code actions provider
     context.subscriptions.push(vscode.languages.registerCodeActionsProvider(
-        ['json', 'jsonc', 'toml', 'xml', { scheme: 'file', language: 'go.mod' }],
+        ['json', 'jsonc', 'toml', 'xml', 'pip-requirements', { scheme: 'file', language: 'go.mod' }],
         new LicenseActionProvider(),
         { providedCodeActionKinds: LicenseActionProvider.providedCodeActionKinds }
     ));
@@ -185,7 +185,7 @@ function setupEventListeners(context) {
     const onSaveWatcher = vscode.workspace.onDidSaveTextDocument(doc => {
         // If the document is a supported file, run a scan.
         // ถ้า document เป็นไฟล์ที่รองรับ, ให้เรียกการสแกน
-        const supportedFiles = ['package.json', 'composer.json', 'pyproject.toml', 'pom.xml', 'go.mod', 'Cargo.toml', 'settings.json'];
+        const supportedFiles = ['package.json', 'composer.json', 'pyproject.toml', 'requirements.txt', 'pom.xml', 'go.mod', 'Cargo.toml', 'settings.json'];
         if (supportedFiles.some(f => doc.fileName.endsWith(f))) {
             runScan(context);
         }

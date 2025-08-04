@@ -1,31 +1,46 @@
-// This file defines the strategy for parsing Python Poetry's pyproject.toml files and fetching license information.
-// ไฟล์นี้กำหนด strategy สำหรับการ parsing ไฟล์ pyproject.toml ของ Python Poetry และดึงข้อมูล license
+// This file defines the strategy for parsing Python's requirements.txt files and fetching license information.
+// ไฟล์นี้กำหนด strategy สำหรับการ parsing ไฟล์ requirements.txt ของ Python และดึงข้อมูล license
 
 const { fetchJson } = require('../utils/network'); // Import the fetchJson function from the network utils. นำเข้าฟังก์ชัน fetchJson จาก network utils
-const toml = require('toml'); // Import the toml library for parsing TOML files. นำเข้าไลบรารี toml สำหรับ parsing ไฟล์ TOML
 
-const pythonPoetryStrategy = {
+const pythonRequirementsStrategy = {
     // The file name that this strategy handles. ชื่อไฟล์ที่ strategy นี้จัดการ
-    fileName: 'pyproject.toml',
+    fileName: 'requirements.txt',
 
     /**
-     * Parses the pyproject.toml file content and extracts the dependencies.
-     * @param {string} fileContent The content of the pyproject.toml file.
+     * Parses the requirements.txt file content and extracts the dependencies.
+     * @param {string} fileContent The content of the requirements.txt file.
      * @returns {object} An object containing the dependencies.
      */
-    // Parses the pyproject.toml file content and extracts the dependencies.
-    // Parse เนื้อหาไฟล์ pyproject.toml และดึง dependencies
+    // Parses the requirements.txt file content and extracts the dependencies.
+    // Parse เนื้อหาไฟล์ requirements.txt และดึง dependencies
     parseDependencies(fileContent) {
-        // Parse the TOML content of the file. Parse เนื้อหา TOML ของไฟล์
-        const parsedToml = toml.parse(fileContent);
-        // Extract dependencies and dev-dependencies from the parsed TOML. ดึง dependencies และ dev-dependencies จาก TOML ที่ถูก parse แล้ว
-        const dependencies = parsedToml.tool?.poetry?.dependencies || {};
-        const devDependencies = parsedToml.tool?.poetry?.['dev-dependencies'] || {};
-        // Remove the python version dependency. ลบ dependency ของ python version ออก
-        delete dependencies.python;
-        delete devDependencies.python;
-        // Return an object containing the dependencies and dev-dependencies. คืนค่า object ที่มี dependencies และ dev-dependencies
-        return { ...dependencies, ...devDependencies };
+        const deps = {};
+        const lines = fileContent.split('\n');
+
+        for (const line of lines) {
+            // Trim whitespace and ignore comments or empty lines.
+            // ตัดช่องว่างและไม่สนใจ comment หรือบรรทัดว่าง
+            const trimmedLine = line.trim();
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                continue;
+            }
+
+            // Simple regex to extract the package name from the start of the line.
+            // It handles lines like 'requests==2.25.1', 'numpy>=1.20', or just 'pandas'.
+            // Regex ง่ายๆ เพื่อดึงชื่อ package จากจุดเริ่มต้นของบรรทัด
+            // จัดการกับบรรทัดเช่น 'requests==2.25.1', 'numpy>=1.20', หรือ 'pandas'
+            const match = trimmedLine.match(/^[a-zA-Z0-9_.-]+/);
+            
+            if (match) {
+                const name = match[0];
+                // The version part is the rest of the string, or '*' if not specified.
+                // ส่วนของ version คือส่วนที่เหลือของ string, หรือ '*' หากไม่ได้ระบุ
+                const version = trimmedLine.substring(name.length).trim() || '*';
+                deps[name] = version;
+            }
+        }
+        return deps;
     },
 
     /**
@@ -71,5 +86,5 @@ const pythonPoetryStrategy = {
     }
 };
 
-// Export the pythonPoetryStrategy object. ส่งออก object pythonPoetryStrategy
-module.exports = pythonPoetryStrategy;
+// Export the pythonRequirementsStrategy object. ส่งออก object pythonRequirementsStrategy
+module.exports = pythonRequirementsStrategy;
