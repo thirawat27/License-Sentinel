@@ -1,24 +1,49 @@
+// --- START OF FILE strategies/composerStrategy.js (FINAL) ---
+
 // This file defines the strategy for parsing Composer's composer.json files and fetching license information.
 // ไฟล์นี้กำหนด strategy สำหรับการ parsing ไฟล์ composer.json ของ Composer และดึงข้อมูล license
 
-const { fetchJson } = require('../utils/network'); // Import the fetchJson function from the network utils. นำเข้าฟังก์ชัน fetchJson จาก network utils
+const { fetchJson } = require('../utils/network'); // Import the fetchJson function from the network utils.
+const jsonc = require('jsonc-parser'); // Import jsonc-parser to get line numbers.
 
 const composerStrategy = {
-    // The file name that this strategy handles. ชื่อไฟล์ที่ strategy นี้จัดการ
     fileName: 'composer.json',
 
     /**
-     * Parses the composer.json file content and extracts the dependencies.
+     * Parses the composer.json file content and extracts dependencies with their locations.
      * @param {string} fileContent The content of the composer.json file.
-     * @returns {object} An object containing the dependencies.
+     * @param {import('vscode').TextDocument} document The VS Code document object for position mapping.
+     * @returns {Array<{name: string, version: string, line: number}>} An array of dependency objects.
      */
-    // Parses the composer.json file content and extracts the dependencies.
-    // Parse เนื้อหาไฟล์ composer.json และดึง dependencies
-    parseDependencies(fileContent) {
-        // Parse the JSON content of the file. Parse เนื้อหา JSON ของไฟล์
-        const composerJson = JSON.parse(fileContent);
-        // Return an object containing the require and require-dev dependencies. คืนค่า object ที่มี dependencies จาก require และ require-dev
-        return { ...(composerJson.require || {}), ...(composerJson['require-dev'] || {}) };
+    parseDependencies(fileContent, document) {
+        const dependencies = [];
+        const tree = jsonc.parseTree(fileContent);
+        if (!tree) return [];
+
+        const depSections = ["require", "require-dev"];
+
+        for (const section of depSections) {
+            const depsNode = jsonc.findNodeAtLocation(tree, [section]);
+            if (depsNode && depsNode.type === 'object' && depsNode.children) {
+                depsNode.children.forEach(propNode => {
+                    if (propNode.children && propNode.children.length === 2) {
+                        const keyNode = propNode.children[0];
+                        const valueNode = propNode.children[1];
+                        
+                        const name = keyNode.value;
+                        const version = valueNode.value;
+                        const position = document.positionAt(keyNode.offset);
+
+                        dependencies.push({
+                            name,
+                            version,
+                            line: position.line,
+                        });
+                    }
+                });
+            }
+        }
+        return dependencies;
     },
 
     /**
@@ -26,22 +51,16 @@ const composerStrategy = {
      * @param {string} packageName The name of the package.
      * @returns {Promise<object>} An object containing the license and homepage information.
      */
-    // Fetches the license information for a given package name from Packagist.
-    // ดึงข้อมูล license สำหรับ package name ที่กำหนดจาก Packagist
     async fetchLicenseInfo(packageName) {
-        // Fetch the package data from Packagist. ดึงข้อมูล package จาก Packagist
         const response = await fetchJson(`https://repo.packagist.org/p2/${packageName}.json`);
-        // Extract the package data from the response. ดึงข้อมูล package จาก response
+        // The first version is often the latest stable, which is a reasonable default.
         const packageData = response.packages[packageName][0];
-        // Return an object containing the license and homepage information. คืนค่า object ที่มีข้อมูล license และ homepage
         return {
-            // Get the license from the package data, or 'N/A' if it is not available. ดึง license จากข้อมูล package หรือ 'N/A' หากไม่มี
             license: (packageData.license && packageData.license[0]) || 'N/A',
-            // Get the homepage from the package data, or a default Packagist URL if it is not available. ดึง homepage จากข้อมูล package หรือ URL ของ Packagist หากไม่มี
             homepage: packageData.homepage || `https://packagist.org/packages/${packageName}`
         };
     }
 };
 
-// Export the composerStrategy object. ส่งออก object composerStrategy
 module.exports = composerStrategy;
+// --- END OF FILE strategies/composerStrategy.js (FINAL) ---

@@ -1,150 +1,160 @@
+// --- START OF FILE src/ai/licenseAnalyzer.js (FINAL & SMARTEST) ---
+
 // This file contains functions for analyzing license policies and determining compliance.
 // ไฟล์นี้มีฟังก์ชันสำหรับการวิเคราะห์นโยบายใบอนุญาตและตรวจสอบการปฏิบัติตามข้อกำหนด
 
-const LICENSE_KEYWORDS = {
-    // Keywords and phrases that trigger specific license obligations.
-    // คำหลักและวลีที่กระตุ้นภาระผูกพันใบอนุญาตที่เฉพาะเจาะจง
+// A more comprehensive list of keywords and their corresponding licenses.
+const LICENSE_OBLIGATIONS = {
     discloseSource: {
-        // Triggers for licenses that require source code disclosure.
-        // ตัวกระตุ้นสำหรับใบอนุญาตที่กำหนดให้เปิดเผยซอร์สโค้ด
-        triggers: ["disclose source", "source code must be made available"],
-        // Summary of the obligation.
-        // สรุปภาระผูกพัน
-        summary: "Obligation to disclose source code if distributed.",
-        // Risk level associated with this obligation.
-        // ระดับความเสี่ยงที่เกี่ยวข้องกับภาระผูกพันนี้
-        risk: "high"
+        summary: "Source code must be disclosed if distributed.",
+        risk: "high",
+        licenses: ["gpl-2.0", "gpl-3.0", "agpl-3.0", "lgpl-2.1", "lgpl-3.0", "mpl-2.0", "cpl-1.0", "epl-1.0", "epl-2.0"]
     },
     sameLicense: {
-        // Triggers for copyleft licenses that require modifications to be released under the same license.
-        // ตัวกระตุ้นสำหรับใบอนุญาต copyleft ที่กำหนดให้เผยแพร่การแก้ไขภายใต้ใบอนุญาตเดียวกัน
-        triggers: ["same license", "licensed under the same terms", "copyleft"],
-        // Summary of the obligation.
-        // สรุปภาระผูกพัน
         summary: "Modifications must be released under the same license (Copyleft).",
-        // Risk level associated with this obligation.
-        // ระดับความเสี่ยงที่เกี่ยวข้องกับภาระผูกพันนี้
-        risk: "high"
+        risk: "high",
+        licenses: ["gpl-2.0", "gpl-3.0", "agpl-3.0", "lgpl-2.1", "lgpl-3.0", "mpl-2.0"]
+    },
+    networkUseIsDistribution: {
+        summary: "Use over a network may be considered distribution (AGPL).",
+        risk: "high",
+        licenses: ["agpl-3.0"]
+    },
+    stateChanges: {
+        summary: "Changes to the licensed code must be stated.",
+        risk: "medium",
+        licenses: ["apache-2.0", "bsd-3-clause", "mpl-2.0", "lgpl-2.1", "lgpl-3.0"]
     },
     includeCopyright: {
-        // Triggers for licenses that require the inclusion of the original copyright notice.
-        // ตัวกระตุ้นสำหรับใบอนุญาตที่กำหนดให้รวมประกาศลิขสิทธิ์เดิม
-        triggers: ["include the original copyright", "copyright notice"],
-        // Summary of the obligation.
-        // สรุปภาระผูกพัน
-        summary: "Requirement to include original copyright notice.",
-        // Risk level associated with this obligation.
-        // ระดับความเสี่ยงที่เกี่ยวข้องกับภาระผูกพันนี้
-        risk: "medium"
+        summary: "Must include the original copyright notice and license text.",
+        risk: "medium",
+        licenses: ["mit", "isc", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "mpl-2.0", "epl-2.0"]
     },
     noLiability: {
-        // Triggers for licenses that disclaim liability.
-        // ตัวกระตุ้นสำหรับใบอนุญาตที่ปฏิเสธความรับผิด
-        triggers: ["no liability", "without warranty", "as is"],
-        // Summary of the obligation.
-        // สรุปภาระผูกพัน
-        summary: "Provided 'as-is' without warranty.",
-        // Risk level associated with this obligation.
-        // ระดับความเสี่ยงที่เกี่ยวข้องกับภาระผูกพันนี้
-        risk: "low"
+        summary: "Provided 'as-is' without any warranty.",
+        risk: "low",
+        licenses: ["mit", "isc", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "unlicense"]
     },
-     noTrademark: {
-        // Triggers for licenses that restrict the use of trademarks.
-        // ตัวกระตุ้นสำหรับใบอนุญาตที่ จำกัด การใช้เครื่องหมายการค้า
-        triggers: ["not use the name", "trademark"],
-        // Summary of the obligation.
-        // สรุปภาระผูกพัน
-        summary: "You may not use the names or trademarks of the original authors.",
-        // Risk level associated with this obligation.
-        // ระดับความเสี่ยงที่เกี่ยวข้องกับภาระผูกพันนี้
-        risk: "medium"
+    noTrademark: {
+        summary: "Cannot use trademarks of the original authors.",
+        risk: "medium",
+        licenses: ["apache-2.0"]
     }
 };
 
+// --- NEW: Smart License Identifier Mapping ---
+// A map to convert common license names to their SPDX identifier.
+// Map สำหรับแปลงชื่อ license ทั่วไปให้เป็น SPDX identifier
+const LICENSE_NAME_TO_SPDX = {
+    'mit license': 'MIT',
+    'apache license, version 2.0': 'Apache-2.0',
+    'apache 2.0': 'Apache-2.0',
+    'bsd license': 'BSD-3-Clause', // Default to 3-clause as it's common, can be ambiguous
+    'new bsd license': 'BSD-3-Clause',
+    'simplified bsd license': 'BSD-2-Clause',
+    'isc license': 'ISC',
+    'mozilla public license 2.0': 'MPL-2.0',
+    'gnu gpl v3': 'GPL-3.0-only',
+    'gnu lgpl v3': 'LGPL-3.0-only',
+};
+
 /**
- * Analyzes a license string against a given policy to determine compliance.
- * วิเคราะห์ license string กับนโยบายที่กำหนดเพื่อตรวจสอบ compliance
- * @param {string} licenseString The license string to analyze. license string ที่จะวิเคราะห์
- * @param {object} policy An object containing allowed and denied licenses. object ที่มี allowed และ denied licenses
- * @returns {object} An object containing the analysis summary, risk level, and reason. object ที่มี analysis summary, risk level และ reason
+ * Normalizes a license string to a standard SPDX-like identifier.
+ * This version is smarter and uses a mapping first.
+ * @param {string} license The license string.
+ * @returns {string} The normalized license identifier (in lowercase).
+ */
+function normalizeLicense(license) {
+    if (!license) return '';
+    
+    const lowerLicense = license.toLowerCase().trim();
+
+    // 1. Check for an exact match in our smart map
+    if (LICENSE_NAME_TO_SPDX[lowerLicense]) {
+        return LICENSE_NAME_TO_SPDX[lowerLicense].toLowerCase();
+    }
+
+    // 2. Check for partial matches in the map keys
+    for (const key in LICENSE_NAME_TO_SPDX) {
+        if (lowerLicense.includes(key)) {
+            return LICENSE_NAME_TO_SPDX[key].toLowerCase();
+        }
+    }
+    
+    // 3. Fallback to regex-based cleaning for common patterns if no map entry found
+    // This handles cases like "BSD 3-Clause License" -> "bsd-3-clause"
+    return lowerLicense
+        .replace(/license/g, '')      // remove the word "license"
+        .replace(/\(and\)/g, 'or')     // treat 'and' as 'or' for splitting
+        .replace(/,\s*$/, '')         // remove trailing commas
+        .replace(/\s*v?(\d\.\d).*/, '-$1') // normalize version "2.0" -> "-2.0"
+        .replace(/\s*(\d)-clause/, '-$1-clause') // normalize "3-Clause" -> "-3-clause"
+        .replace(/[\s,()]/g, '-')      // replace spaces, commas, parens with dashes
+        .replace(/--+/, '-')           // collapse multiple dashes
+        .replace(/^-|-$/, '')          // remove leading/trailing dashes
+        .trim();
+}
+
+
+/**
+ * Analyzes a license string against a given policy to determine compliance and obligations.
+ * @param {string} licenseString The license string to analyze.
+ * @param {object} policy An object containing allowed and denied licenses.
+ * @returns {{status: 'compliant'|'non-compliant'|'unknown', reason: string, obligations: Array<{summary: string, risk: 'low'|'medium'|'high'}>}} Analysis result.
  */
 function analyzeLicensePolicy(licenseString, policy) {
-    // If the license string is missing or invalid, return an unknown result.
-    // ถ้า license string หายไปหรือไม่ถูกต้อง, คืนค่าผลลัพธ์ที่ไม่รู้จัก
     if (!licenseString || licenseString === 'N/A' || licenseString.startsWith('Error')) {
-        return { 
-            // Summary of the analysis.
-            // สรุปการวิเคราะห์
-            summary: ["License information is missing or could not be fetched."],
-            // Risk level associated with the missing license.
-            // ระดับความเสี่ยงที่เกี่ยวข้องกับ license ที่หายไป
-            risk: 'unknown',
-            // Reason for the unknown result.
-            // เหตุผลสำหรับผลลัพธ์ที่ไม่รู้จัก
-            reason: "Missing or invalid license data."
+        return {
+            status: 'unknown',
+            reason: "Missing or invalid license data.",
+            obligations: []
         };
     }
 
-    // Split the license string into individual licenses.
-    // แยก license string เป็น licenses แต่ละรายการ
-    const individualLicenses = licenseString.split(/ OR |\/|\sOR\s/i).map(l => l.trim().toLowerCase());
-    // Array to store the analysis summary.
-    // Array เพื่อเก็บสรุปการวิเคราะห์
-    let analysisSummary = [];
-    // Overall risk level.
-    // ระดับความเสี่ยงโดยรวม
-    let overallRisk = 'unknown';
-    // Primary reason for the analysis result.
-    // เหตุผลหลักสำหรับผลการวิเคราะห์
-    let primaryReason = `License: "${licenseString}". `;
+    // Normalize and split the license string (e.g., "MIT OR Apache-2.0")
+    const individualLicenses = licenseString.split(/ OR |\/|\sOR\s/i);
+    // --- FIX: Apply the new, smarter normalization to each part ---
+    const normalizedLicenses = individualLicenses.map(l => normalizeLicense(l));
+    
+    let status = 'unknown';
+    let reason = `License: "${licenseString}". `;
+    
+    // The policy lists (allowed, denied) are already lowercased in scanner.js
+    const deniedMatch = normalizedLicenses.find(l => l && policy.denied.has(l));
+    const allowedMatch = normalizedLicenses.find(l => l && policy.allowed.has(l));
 
-    // Check if any of the individual licenses are on the denied list.
-    // ตรวจสอบว่ามี licenses ใด ๆ อยู่ในรายการ denied หรือไม่
-    const deniedMatch = individualLicenses.find(l => l && policy.denied.has(l));
     if (deniedMatch) {
-        // If a denied license is found, set the risk to high and add a reason.
-        // หากพบ license ที่ถูกปฏิเสธ, ตั้งค่าความเสี่ยงเป็นสูงและเพิ่มเหตุผล
-        overallRisk = 'high';
-        primaryReason += `It is considered NON-COMPLIANT because '${deniedMatch}' is on your denied licenses list.`;
-        analysisSummary.push(`- ❌ **Non-Compliant:** Matches denied license '${deniedMatch}'.`);
+        status = 'non-compliant';
+        reason += `It is NON-COMPLIANT because '${deniedMatch}' is on your denied list.`;
+    } else if (allowedMatch) {
+        status = 'compliant';
+        reason += `It is COMPLIANT because '${allowedMatch}' is on your allowed list.`;
     } else {
-        // If no denied licenses are found, check if any are on the allowed list.
-        // หากไม่พบ licenses ที่ถูกปฏิเสธ, ตรวจสอบว่ามี licenses ใด ๆ อยู่ในรายการ allowed หรือไม่
-        const allowedMatch = individualLicenses.find(l => l && policy.allowed.has(l));
-        if (allowedMatch) {
-            // If an allowed license is found, set the risk to low and add a reason.
-            // หากพบ license ที่ได้รับอนุญาต, ตั้งค่าความเสี่ยงเป็นต่ำและเพิ่มเหตุผล
-            overallRisk = 'low';
-            primaryReason += `It is considered COMPLIANT because '${allowedMatch}' is on your allowed licenses list.`;
-            analysisSummary.push(`- ✅ **Compliant:** Matches allowed license '${allowedMatch}'.`);
-        } else {
-            // If no allowed licenses are found, set the risk to medium and add a reason.
-            // หากไม่พบ licenses ที่ได้รับอนุญาต, ตั้งค่าความเสี่ยงเป็นปานกลางและเพิ่มเหตุผล
-            overallRisk = 'medium';
-            primaryReason += `It is UNKNOWN because it is not explicitly on your allowed or denied lists. Manual review is recommended.`;
-            analysisSummary.push(`- ❓ **Unknown Status:** Not found in your defined policies.`);
+        // More helpful "unknown" message
+        reason += `Its status is UNKNOWN. Normalized identifiers found: [${normalizedLicenses.join(', ')}]. Check if these are in your policies.`;
+    }
+
+    // Analyze obligations based on all found licenses
+    const obligations = [];
+    const foundObligations = new Set(); 
+
+    for (const license of normalizedLicenses) {
+        const normalizedForObligation = license.replace(/\(|\)/g, '');
+        for (const [key, value] of Object.entries(LICENSE_OBLIGATIONS)) {
+            if (value.licenses.includes(normalizedForObligation) && !foundObligations.has(key)) {
+                obligations.push({ summary: value.summary, risk: value.risk });
+                foundObligations.add(key);
+            }
         }
     }
 
-    // Add a disclaimer to the analysis summary.
-    // เพิ่มข้อจำกัดความรับผิดชอบในสรุปการวิเคราะห์
-    analysisSummary.push("- *This is an automated analysis. Always verify important licenses manually.*");
-
-    // Return the analysis result.
-    // คืนค่าผลการวิเคราะห์
     return {
-        // Summary of the analysis.
-        // สรุปการวิเคราะห์
-        summary: analysisSummary,
-        // Overall risk level.
-        // ระดับความเสี่ยงโดยรวม
-        risk: overallRisk,
-        // Primary reason for the analysis result.
-        // เหตุผลหลักสำหรับผลการวิเคราะห์
-        reason: primaryReason
+        status,
+        reason,
+        obligations
     };
 }
 
 // Export the analyzeLicensePolicy function.
-// ส่งออกฟังก์ชัน analyzeLicensePolicy
 module.exports = { analyzeLicensePolicy };
+// --- END OF FILE src/ai/licenseAnalyzer.js (FINAL & SMARTEST) ---

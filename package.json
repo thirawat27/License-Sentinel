@@ -2,7 +2,7 @@
   "name": "license-sentinel",
   "displayName": "License Sentinel 🛡️",
   "description": "An intelligent, proactive assistant for managing and enforcing open-source license policies directly within VS Code.",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "publisher": "thirawat27",
   "icon": "image/LicenseSentinel.png",
   "scripts": {
@@ -35,7 +35,6 @@
     "dependency",
     "security",
     "linter",
-    "ai",
     "npm",
     "composer",
     "maven",
@@ -61,7 +60,7 @@
       "license-sentinel-view-container": [
         {
           "id": "license-sentinel-dependency-view",
-          "name": "Dependencys",
+          "name": "Dependencies",
           "type": "tree"
         }
       ]
@@ -117,26 +116,22 @@
         {
           "command": "license-sentinel.refresh",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@1",
-          "icon": "$(refresh)"
+          "group": "navigation@1"
         },
         {
           "command": "license-sentinel.exportReport",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@2",
-          "icon": "$(export)"
+          "group": "navigation@2"
         },
         {
           "command": "license-sentinel.clearCache",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@2",
-          "icon": "$(trashcan)"
+          "group": "navigation@2"
         },
         {
           "command": "license-sentinel.openSettings",
           "when": "view == license-sentinel-dependency-view",
-          "group": "navigation@3",
-          "icon": "$(settings-gear)"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -169,17 +164,17 @@
       "editor/context": [
         {
           "command": "license-sentinel.startScan",
-          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$|requirements.txt$/",
           "group": "licenseSentinel@1"
         },
         {
           "command": "license-sentinel.refresh",
-          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$|requirements.txt$/",
           "group": "licenseSentinel@2"
         },
         {
           "command": "license-sentinel.clearCache",
-          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$/",
+          "when": "resourceFilename =~ /package.json$|composer.json$|pyproject.toml$|pom.xml$|go.mod$|Cargo.toml$|requirements.txt$/",
           "group": "licenseSentinel@3"
         }
       ]
@@ -191,21 +186,35 @@
           "type": "array",
           "default": [
             "MIT",
-            "ISC",
             "Apache-2.0",
+            "ISC",
             "BSD-2-Clause",
-            "BSD-3-Clause"
+            "BSD-3-Clause",
+            "Unlicense",
+            "MPL-2.0",
+            "CC0-1.0",
+            "Zlib",
+            "Boost-1.0",
+            "Artistic-2.0",
+            "Eclipse-1.0",
+            "Eclipse-2.0",
+            "HPND" 
           ],
-          "description": "List of approved OSS licenses (case-insensitive)."
+          "description": "List of approved OSS licenses (case-insensitive). Uses standard SPDX identifiers."
         },
         "license-sentinel.deniedLicenses": {
           "type": "array",
           "default": [
             "GPL-2.0",
             "GPL-3.0",
-            "AGPL-3.0"
+            "AGPL-3.0",
+            "LGPL-2.1",
+            "LGPL-3.0",
+            "CC-BY-NC",
+            "CC-BY-NC-SA",
+            "Commons-Clause"
           ],
-          "description": "List of explicitly denied OSS licenses (case-insensitive)."
+          "description": "List of explicitly denied OSS licenses (case-insensitive). Uses standard SPDX identifiers."
         },
         "license-sentinel.excludePatterns": {
           "type": "array",
@@ -219,6 +228,42 @@
             "**/.venv/**"
           ],
           "description": "An array of glob patterns to exclude from scanning. Prepend '**/' to match in any subdirectory."
+        },
+        "license-sentinel.concurrencyLimit": {
+          "type": "number",
+          "default": 10,
+          "description": "The maximum number of network requests to make at the same time during a scan."
+        },
+        "license-sentinel.policyOverrides": {
+          "type": "array",
+          "default": [],
+          "description": "Define specific policy overrides for certain packages. Each item should be an object: { \"name\": \"package-name\", \"version\": \"1.2.3\", \"allow\": true, \"reason\": \"Approved for internal use.\" }",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the package to override."
+              },
+              "version": {
+                "type": "string",
+                "description": "The specific version to override (optional, applies to all versions if omitted)."
+              },
+              "allow": {
+                "type": "boolean",
+                "description": "Set to 'true' to mark as compliant, 'false' for non-compliant."
+              },
+              "reason": {
+                "type": "string",
+                "description": "The reason for this override."
+              }
+            },
+            "required": [
+              "name",
+              "allow",
+              "reason"
+            ]
+          }
         }
       }
     }
